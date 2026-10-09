@@ -1,0 +1,7 @@
+{"type": "system", "subtype": "init", "session_id": "539a1777-5933-47e9-832a-fa0e4010c2d3", "tools": ["WebSearch"], "mcp_servers": [], "model": "claude-haiku-5-5"}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_01FRJzgGDU5qLNcV51E9pzA8", "name": "WebSearch", "input": {}}}}
+{"type": "stream_event", "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "thinking_delta", "thinking": ""}}}
+{"type": "stream_event", "event": {"type": "content_block_delta", "index": 1, "delta": {"type": "text_delta", "text": "The top story is "}}}
+{"type": "stream_event", "event": {"type": "content_block_delta", "index": 1, "delta": {"type": "text_delta", "text": "a by-election result."}}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "The top story is a by-election result."}]}, "session_id": "539a1777-5933-47e9-832a-fa0e4010c2d3"}
+{"type": "result", "subtype": "success", "is_error": false, "duration_ms": 17588, "num_turns": 3, "session_id": "539a1777-5933-47e9-832a-fa0e4010c2d3", "total_cost_usd": 0.048563779999999994, "usage": {"input_tokens": 6, "cache_creation_input_tokens": 6339, "cache_read_input_tokens": 11278, "output_tokens": 632}, "result": "The top story is a by-election result."}

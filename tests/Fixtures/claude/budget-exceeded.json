@@ -1,0 +1,19 @@
+{
+  "type": "result",
+  "subtype": "error_max_budget_usd",
+  "is_error": true,
+  "duration_ms": 1890,
+  "num_turns": 1,
+  "session_id": "0b6f5d43-2f0e-4f3c-9a3e-5f3b8a2c1d7e",
+  "total_cost_usd": 0.0009,
+  "result": null,
+  "errors": [
+    "Reached maximum budget ($0.00001)"
+  ],
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0
+  }
+}
