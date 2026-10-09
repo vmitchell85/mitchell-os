@@ -51,6 +51,19 @@ describe('ask', function () {
             ->command->not->toContain('What\'s for "dinner"?');
     });
 
+    it('runs as the OS account so the CLI finds its login when the web server strips the environment', function () {
+        $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
+        $account = posix_getpwuid(posix_geteuid());
+
+        app(ClaudeCli::class)->ask(new ClaudeRequest('Hello'));
+
+        expect($captured->process->environment)->toBe([
+            'HOME' => $account['dir'],
+            'USER' => $account['name'],
+            'LOGNAME' => $account['name'],
+        ]);
+    });
+
     it('locks down settings, MCP servers, tools and session persistence by default', function () {
         $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
 

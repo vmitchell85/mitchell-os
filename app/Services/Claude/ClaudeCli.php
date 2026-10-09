@@ -88,8 +88,32 @@ class ClaudeCli
         File::ensureDirectoryExists($workingDirectory);
 
         return Process::path($workingDirectory)
+            ->env($this->accountEnvironment())
             ->timeout(config('claude.timeout'))
             ->input($request->prompt);
+    }
+
+    /**
+     * Web servers such as `php artisan serve` strip the environment, but the CLI
+     * needs all three of these to find its login in the macOS keychain.
+     *
+     * @return array{HOME: string, USER: string, LOGNAME: string}
+     *
+     * @throws ClaudeException
+     */
+    protected function accountEnvironment(): array
+    {
+        $account = posix_getpwuid(posix_geteuid());
+
+        if ($account === false) {
+            throw new ClaudeException('Could not look up the OS account PHP is running as, so the Claude CLI cannot find its login.');
+        }
+
+        return [
+            'HOME' => $account['dir'],
+            'USER' => $account['name'],
+            'LOGNAME' => $account['name'],
+        ];
     }
 
     /**
