@@ -45,4 +45,31 @@ return [
 
     'max_budget_usd' => (float) env('CLAUDE_MAX_BUDGET_USD', 1.0),
 
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Servers
+    |--------------------------------------------------------------------------
+    |
+    | Servers a request can use by allowing one of their tools, named
+    | mcp__{server}__{tool}. Only the servers a request needs are started.
+    | Their env is passed through the process environment, so secrets never
+    | appear in the command line. Use an absolute path to node, because web
+    | servers usually don't have nvm or Homebrew on their PATH.
+    |
+    */
+
+    'mcp_servers' => [
+
+        'skylight' => [
+            'command' => env('CLAUDE_NODE_BINARY', 'node'),
+            'args' => [base_path('node_modules/skylight-mcp/dist/index.js')],
+            'env' => [
+                'SKYLIGHT_EMAIL' => env('SKYLIGHT_EMAIL'),
+                'SKYLIGHT_PASSWORD' => env('SKYLIGHT_PASSWORD'),
+                'SKYLIGHT_FRAME_ID' => env('SKYLIGHT_FRAME_ID'),
+            ],
+        ],
+
+    ],
+
 ];

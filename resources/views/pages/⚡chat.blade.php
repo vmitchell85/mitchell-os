@@ -9,6 +9,7 @@ use App\Services\Claude\ClaudeRequest;
 use App\Services\Claude\MessageRole;
 use App\Services\Claude\StreamEvent;
 use App\Services\Claude\StreamEventType;
+use App\Services\Skylight\SkylightTools;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -82,7 +83,8 @@ new #[Title('Chat')] class extends Component {
                 prompt: $question->content,
                 feature: 'chat',
                 user: Auth::user(),
-                tools: ['WebSearch'],
+                systemPrompt: $this->systemPrompt(),
+                tools: ['WebSearch', ...SkylightTools::Read, ...SkylightTools::Add],
                 resumeSessionId: $this->conversation->claude_session_id,
                 persistSession: true,
             ), function (StreamEvent $event): void {
@@ -139,11 +141,20 @@ new #[Title('Chat')] class extends Component {
         return $latest?->role === MessageRole::User ? $latest : null;
     }
 
+    protected function systemPrompt(): string
+    {
+        return config('claude.system_prompt').' You are chatting with '.Auth::user()->name.'.'
+            .' The family uses a Skylight calendar: you can look up its events, lists, chores and meal plan, and add events, list items and planned meals.'
+            .' You cannot change or delete anything that is already in Skylight, so if asked to, explain that it needs doing in the Skylight app.';
+    }
+
     protected function toolStatus(?string $toolName): string
     {
-        return match ($toolName) {
-            'WebSearch' => __('Searching the web…'),
-            'WebFetch' => __('Reading a web page…'),
+        return match (true) {
+            $toolName === 'WebSearch' => __('Searching the web…'),
+            $toolName === 'WebFetch' => __('Reading a web page…'),
+            in_array($toolName, SkylightTools::Add, true) => __('Updating Skylight…'),
+            str_starts_with((string) $toolName, 'mcp__skylight__') => __('Checking Skylight…'),
             default => __('Using :tool…', ['tool' => $toolName]),
         };
     }
@@ -207,7 +218,7 @@ new #[Title('Chat')] class extends Component {
                 @empty
                     <div class="flex flex-col items-center gap-2 py-24 text-center">
                         <flux:heading size="xl">{{ __('What can I help with?') }}</flux:heading>
-                        <flux:text>{{ __('Claude can search the web to answer your questions.') }}</flux:text>
+                        <flux:text>{{ __('Claude can search the web and check or add to the family\'s Skylight calendar, lists and meal plan.') }}</flux:text>
                     </div>
                 @endforelse
 

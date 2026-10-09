@@ -74,14 +74,14 @@ describe('ask', function () {
         expect($command)
             ->toContain('-p', '--strict-mcp-config', '--no-session-persistence')
             ->not->toContain('--allowedTools', '--resume', '--json-schema');
+        expect($command)->not->toContain('--mcp-config');
         expect([
             claudeOption($command, '--output-format'),
             claudeOption($command, '--setting-sources'),
             claudeOption($command, '--tools'),
             claudeOption($command, '--model'),
-            claudeOption($command, '--system-prompt'),
             claudeOption($command, '--max-budget-usd'),
-        ])->toBe(['json', '', '', 'sonnet', 'You help the household.', '0.5']);
+        ])->toBe(['json', '', '', 'sonnet', '0.5']);
     });
 
     it('passes the model, system prompt, budget and json schema from the request', function () {
@@ -98,10 +98,61 @@ describe('ask', function () {
         $command = $captured->process->command;
         expect([
             claudeOption($command, '--model'),
-            claudeOption($command, '--system-prompt'),
             claudeOption($command, '--max-budget-usd'),
             claudeOption($command, '--json-schema'),
-        ])->toBe(['haiku', 'You are a greengrocer.', '0.05', '{"type":"object","properties":{"fruit":{"type":"string"}}}']);
+        ])->toBe(['haiku', '0.05', '{"type":"object","properties":{"fruit":{"type":"string"}}}']);
+        expect(claudeOption($command, '--system-prompt'))->toStartWith('You are a greengrocer.');
+    });
+
+    it('tells claude the current date and time in the app\'s timezone', function () {
+        config(['app.timezone' => 'Europe/London']);
+        $this->travelTo('2026-10-09 18:30:00 UTC');
+        $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
+
+        app(ClaudeCli::class)->ask(new ClaudeRequest('What is on tomorrow?'));
+
+        expect(claudeOption($captured->process->command, '--system-prompt'))
+            ->toBe("You help the household.\n\nIt is currently Friday 9 October 2026, 19:30 (Europe/London).");
+    });
+
+    it('starts only the MCP servers whose tools are allowed and passes their secrets through the environment', function () {
+        config(['claude.mcp_servers' => [
+            'skylight' => [
+                'command' => '/opt/node/bin/node',
+                'args' => ['/srv/skylight-mcp/index.js'],
+                'env' => ['SKYLIGHT_EMAIL' => 'family@example.com', 'SKYLIGHT_PASSWORD' => 'hunter2', 'SKYLIGHT_FRAME_ID' => null],
+            ],
+            'pantry' => ['command' => 'pantry-mcp', 'args' => [], 'env' => ['PANTRY_KEY' => 'pantry-secret']],
+        ]]);
+        $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
+
+        app(ClaudeCli::class)->ask(new ClaudeRequest('What\'s on today?', tools: ['WebSearch', 'mcp__skylight__skylight_list_events', 'mcp__skylight__skylight_get_event']));
+
+        $command = $captured->process->command;
+        expect([
+            claudeOption($command, '--tools'),
+            claudeOption($command, '--allowedTools'),
+            claudeOption($command, '--mcp-config'),
+        ])->toBe([
+            'WebSearch',
+            'WebSearch,mcp__skylight__skylight_list_events,mcp__skylight__skylight_get_event',
+            '{"mcpServers":{"skylight":{"type":"stdio","command":"/opt/node/bin/node","args":["/srv/skylight-mcp/index.js"]}}}',
+        ]);
+        expect(implode(' ', $command))->not->toContain('hunter2');
+        expect($captured->process->environment)
+            ->toMatchArray(['SKYLIGHT_EMAIL' => 'family@example.com', 'SKYLIGHT_PASSWORD' => 'hunter2'])
+            ->not->toHaveKeys(['SKYLIGHT_FRAME_ID', 'PANTRY_KEY']);
+    });
+
+    it('throws and records a failed run when a tool needs an MCP server that is not configured', function () {
+        config(['claude.mcp_servers' => []]);
+        fakeClaudeProcess(claudeFixture('ask-structured.json'));
+
+        expect(fn () => app(ClaudeCli::class)->ask(new ClaudeRequest('Hello', tools: ['mcp__pantry__list_items'])))
+            ->toThrow(ClaudeException::class, 'The MCP server [pantry] is not configured in config/claude.php.');
+
+        expect(ClaudeRun::sole()->status)->toBe(ClaudeRunStatus::Failed);
+        Process::assertNothingRan();
     });
 
     it('enables and pre-approves only the requested tools', function () {

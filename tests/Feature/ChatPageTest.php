@@ -119,6 +119,22 @@ it('resumes the conversation\'s claude session with web search and keeps its tit
     Queue::assertNotPushed(GenerateConversationTitle::class);
 });
 
+it('lets chat read and add to skylight but not change or delete anything', function () {
+    Queue::fake([GenerateConversationTitle::class]);
+    $captured = fakeClaudeProcess(claudeFixture('stream-web-search.jsonl'));
+    $conversation = Conversation::factory()->create();
+    Message::factory()->for($conversation)->create(['content' => 'Add swimming on Saturday at 10']);
+
+    Livewire::actingAs($conversation->user)
+        ->test('pages::chat', ['conversation' => $conversation])
+        ->call('reply');
+
+    $allowedTools = explode(',', claudeOption($captured->process->command, '--allowedTools'));
+    expect($allowedTools)
+        ->toContain('mcp__skylight__skylight_list_events', 'mcp__skylight__skylight_create_event', 'mcp__skylight__skylight_add_list_item')
+        ->and(preg_grep('/^mcp__skylight__skylight_(delete|update|clear|remove|invite|approve|rename|set)_/', $allowedTools))->toBeEmpty();
+});
+
 it('shows the error and saves no reply when claude fails', function () {
     Exceptions::fake();
     fakeClaudeProcess(exitCode: 1, errorOutput: 'Not logged in');

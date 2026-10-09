@@ -88,7 +88,7 @@ class ClaudeCli
         File::ensureDirectoryExists($workingDirectory);
 
         return Process::path($workingDirectory)
-            ->env($this->accountEnvironment())
+            ->env([...$this->mcpEnvironment($request), ...$this->accountEnvironment()])
             ->timeout(config('claude.timeout'))
             ->input($request->prompt);
     }
@@ -117,6 +117,39 @@ class ClaudeCli
     }
 
     /**
+     * The configured MCP servers the request needs, keyed by name.
+     *
+     * @return array<string, array{command: string, args: list<string>, env: array<string, string|null>}>
+     *
+     * @throws ClaudeException
+     */
+    protected function mcpServers(ClaudeRequest $request): array
+    {
+        $servers = [];
+
+        foreach ($request->mcpServers() as $name) {
+            $servers[$name] = config("claude.mcp_servers.{$name}")
+                ?? throw new ClaudeException("The MCP server [{$name}] is not configured in config/claude.php.");
+        }
+
+        return $servers;
+    }
+
+    /**
+     * Environment for the MCP servers, which inherit it from the CLI.
+     *
+     * @return array<string, string>
+     *
+     * @throws ClaudeException
+     */
+    protected function mcpEnvironment(ClaudeRequest $request): array
+    {
+        $environment = array_merge(...array_values(array_map(fn (array $server): array => $server['env'], $this->mcpServers($request))));
+
+        return array_filter($environment, fn (?string $value): bool => $value !== null && $value !== '');
+    }
+
+    /**
      * Build the CLI arguments. Project settings, MCP servers and tools are
      * locked down unless the request explicitly asks for them.
      *
@@ -128,15 +161,25 @@ class ClaudeCli
             config('claude.binary'), '-p',
             '--output-format', $outputFormat,
             '--model', $request->model ?? config('claude.model'),
-            '--system-prompt', $request->systemPrompt ?? config('claude.system_prompt'),
+            '--system-prompt', $this->systemPrompt($request),
             '--max-budget-usd', (string) ($request->maxBudgetUsd ?? config('claude.max_budget_usd')),
             '--setting-sources', '',
             '--strict-mcp-config',
-            '--tools', implode(',', $request->tools),
+            '--tools', implode(',', $request->builtInTools()),
         ];
 
         if ($request->tools !== []) {
             array_push($command, '--allowedTools', implode(',', $request->tools));
+        }
+
+        if ($servers = $this->mcpServers($request)) {
+            $mcpConfig = array_map(fn (array $server): array => [
+                'type' => 'stdio',
+                'command' => $server['command'],
+                'args' => $server['args'],
+            ], $servers);
+
+            array_push($command, '--mcp-config', json_encode(['mcpServers' => $mcpConfig], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
         }
 
         if ($outputFormat === 'stream-json') {
@@ -156,6 +199,18 @@ class ClaudeCli
         }
 
         return $command;
+    }
+
+    /**
+     * Replacing Claude Code's system prompt also drops the date it would
+     * include, which questions like "what's on tomorrow?" depend on.
+     */
+    protected function systemPrompt(ClaudeRequest $request): string
+    {
+        $now = now()->timezone(config('app.timezone'));
+
+        return ($request->systemPrompt ?? config('claude.system_prompt'))
+            ."\n\nIt is currently {$now->format('l j F Y, H:i')} ({$now->getTimezone()->getName()}).";
     }
 
     /**
