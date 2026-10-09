@@ -3,6 +3,7 @@
 use App\Jobs\GenerateConversationTitle;
 use App\Models\ClaudeRun;
 use App\Models\Conversation;
+use App\Models\HouseholdSetting;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\Claude\ClaudeException;
@@ -133,6 +134,20 @@ it('lets chat read and add to skylight but not change or delete anything', funct
     expect($allowedTools)
         ->toContain('mcp__skylight__skylight_list_events', 'mcp__skylight__skylight_create_event', 'mcp__skylight__skylight_add_list_item')
         ->and(preg_grep('/^mcp__skylight__skylight_(delete|update|clear|remove|invite|approve|rename|set)_/', $allowedTools))->toBeEmpty();
+});
+
+it('tells claude the household food rules', function () {
+    Queue::fake([GenerateConversationTitle::class]);
+    HouseholdSetting::put(HouseholdSetting::FoodRules, 'No seafood.');
+    $captured = fakeClaudeProcess(claudeFixture('stream-web-search.jsonl'));
+    $conversation = Conversation::factory()->create();
+    Message::factory()->for($conversation)->create(['content' => 'Ideas for dinner?']);
+
+    Livewire::actingAs($conversation->user)
+        ->test('pages::chat', ['conversation' => $conversation])
+        ->call('reply');
+
+    expect(claudeOption($captured->process->command, '--system-prompt'))->toContain("Household food rules (always follow these):\nNo seafood.");
 });
 
 it('shows the error and saves no reply when claude fails', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Meals;
 
+use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use Carbon\CarbonImmutable;
 
@@ -42,7 +43,7 @@ class MealPlanPrompt
     }
 
     /**
-     * What's already planned this week and what was eaten recently.
+     * The household's food rules, what's already planned this week and what was eaten recently.
      */
     public static function context(CarbonImmutable $weekStart, ?Meal $except = null): string
     {
@@ -57,6 +58,7 @@ class MealPlanPrompt
             ->distinct()->orderBy('name')->pluck('name');
 
         return implode("\n\n", array_filter([
+            HouseholdSetting::foodRulesPrompt(),
             $thisWeek->isNotEmpty() ? "Already planned this week:\n".$thisWeek->implode("\n") : null,
             $recent->isNotEmpty() ? "Eaten in the last four weeks:\n".$recent->map(fn (string $name): string => "- {$name}")->implode("\n") : null,
         ]));

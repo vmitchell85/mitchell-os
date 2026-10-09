@@ -2,6 +2,7 @@
 
 use App\Jobs\GenerateConversationTitle;
 use App\Models\Conversation;
+use App\Models\HouseholdSetting;
 use App\Models\Message;
 use App\Services\Claude\ClaudeCli;
 use App\Services\Claude\ClaudeException;
@@ -145,7 +146,8 @@ new #[Title('Chat')] class extends Component {
     {
         return config('claude.system_prompt').' You are chatting with '.Auth::user()->name.'.'
             .' The family uses a Skylight calendar: you can look up its events, lists, chores and meal plan, and add events, list items and planned meals.'
-            .' You cannot change or delete anything that is already in Skylight, so if asked to, explain that it needs doing in the Skylight app.';
+            .' You cannot change or delete anything that is already in Skylight, so if asked to, explain that it needs doing in the Skylight app.'
+            .(($foodRules = HouseholdSetting::foodRulesPrompt()) ? "\n\n{$foodRules}" : '');
     }
 
     protected function toolStatus(?string $toolName): string

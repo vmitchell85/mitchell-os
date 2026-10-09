@@ -2,6 +2,7 @@
 
 use App\Actions\Meals\BuildShoppingList;
 use App\Models\ClaudeRun;
+use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
@@ -65,4 +66,14 @@ it('does not ask claude when there are no approved meals in range', function () 
 
     expect(buildShoppingList(ShoppingList::factory()->create()))->toBe([]);
     Process::assertNothingRan();
+});
+
+it('gives claude the household food rules', function () {
+    HouseholdSetting::put(HouseholdSetting::FoodRules, 'No seafood.');
+    Meal::factory()->create(['date' => '2026-10-12']);
+    $captured = fakeClaudeProcess(claudeStructuredResult(['items' => []]));
+
+    buildShoppingList(ShoppingList::factory()->create());
+
+    expect($captured->process->input)->toContain("Household food rules (always follow these):\nNo seafood.");
 });

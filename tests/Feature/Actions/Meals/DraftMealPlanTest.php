@@ -2,6 +2,7 @@
 
 use App\Actions\Meals\DraftMealPlan;
 use App\Models\ClaudeRun;
+use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -78,4 +79,13 @@ it('does not ask claude when every requested slot is already planned', function 
 
     expect($drafts)->toBeEmpty();
     Process::assertNothingRan();
+});
+
+it('gives claude the household food rules', function () {
+    HouseholdSetting::put(HouseholdSetting::FoodRules, 'No seafood.');
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
+
+    app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
+
+    expect($captured->process->input)->toContain("Household food rules (always follow these):\nNo seafood.");
 });

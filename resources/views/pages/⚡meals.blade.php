@@ -4,6 +4,7 @@ use App\Actions\Meals\BuildShoppingList;
 use App\Actions\Meals\DraftMealPlan;
 use App\Actions\Meals\RegenerateMeal;
 use App\Actions\Skylight\SyncWithSkylight;
+use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\ShoppingList;
 use App\Services\Claude\ClaudeException;
@@ -26,6 +27,8 @@ new #[Title('Meals')] class extends Component {
     public string $week = '';
 
     public string $notes = '';
+
+    public string $foodRules = '';
 
     /**
      * @var list<string>
@@ -76,6 +79,8 @@ new #[Title('Meals')] class extends Component {
         } catch (Exception) {
             $this->week = CarbonImmutable::today()->startOfWeek()->toDateString();
         }
+
+        $this->foodRules = HouseholdSetting::get(HouseholdSetting::FoodRules) ?? '';
     }
 
     public function previousWeek(): void
@@ -103,10 +108,13 @@ new #[Title('Meals')] class extends Component {
     public function plan(DraftMealPlan $draftMealPlan): void
     {
         $validated = $this->validate([
+            'foodRules' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'planCategories' => ['required', 'array', 'min:1'],
             'planCategories.*' => [Rule::in(Meal::Categories)],
         ]);
+
+        HouseholdSetting::put(HouseholdSetting::FoodRules, trim($validated['foodRules'] ?? '') ?: null);
 
         try {
             $drafts = $draftMealPlan->handle(Auth::user(), $this->weekStart(), $validated['planCategories'], $validated['notes'] ?? '');
@@ -479,7 +487,9 @@ new #[Title('Meals')] class extends Component {
                 <flux:error name="planCategories" />
             </fieldset>
 
-            <flux:textarea wire:model="notes" :label="__('Notes')" rows="3" :placeholder="__('e.g. Sunday vegetarian, quick weeknights, no mushrooms')" />
+            <flux:textarea wire:model="foodRules" :label="__('Household food rules')" :description="__('Remembered for every plan, shopping list and chat.')" rows="2" :placeholder="__('e.g. No seafood. One of the kids is allergic to nuts.')" />
+
+            <flux:textarea wire:model="notes" :label="__('Notes for this week')" rows="3" :placeholder="__('e.g. Sunday vegetarian, quick weeknights')" />
 
             <div class="flex items-center justify-end gap-3">
                 <flux:text size="sm" wire:loading wire:target="plan">{{ __('Planning… this can take a minute.') }}</flux:text>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\ShoppingList;
 use App\Models\User;
@@ -230,4 +231,18 @@ it('requires the shopping list dates to be in order', function () {
         ->set('shopTo', '2026-10-01')
         ->call('buildShoppingList')
         ->assertHasErrors(['shopTo' => 'after_or_equal']);
+});
+
+it('remembers the household food rules when planning', function () {
+    HouseholdSetting::put(HouseholdSetting::FoodRules, 'No seafood.');
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
+
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::meals')
+        ->assertSet('foodRules', 'No seafood.')
+        ->set('foodRules', "No seafood.\nNo nuts.")
+        ->call('plan');
+
+    expect(HouseholdSetting::get(HouseholdSetting::FoodRules))->toBe("No seafood.\nNo nuts.");
+    expect($captured->process->input)->toContain("No seafood.\nNo nuts.");
 });
