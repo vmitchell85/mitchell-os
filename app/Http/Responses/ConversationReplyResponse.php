@@ -37,6 +37,9 @@ class ConversationReplyResponse implements Responsable
     {
         $replyToConversation = app(ReplyToConversation::class);
 
+        // Finish and save the reply even if the app disconnects, so it can fetch it later.
+        ignore_user_abort(true);
+
         return $request->boolean('stream')
             ? $this->streamed($request, $replyToConversation)
             : $this->json($request, $replyToConversation);

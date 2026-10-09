@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Chat\ReplyProgress;
 use App\Jobs\GenerateConversationTitle;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -123,4 +124,16 @@ it('rejects an empty message', function () {
     Sanctum::actingAs(User::factory()->create());
 
     $this->postJson(route('api.v1.conversations.store'), ['message' => ''])->assertJsonValidationErrors('message');
+});
+
+it('refuses to retry while claude is still replying', function () {
+    fakeClaudeProcess();
+    $conversation = Conversation::factory()->create();
+    Message::factory()->for($conversation)->create();
+    ReplyProgress::for($conversation)->begin();
+    Sanctum::actingAs($conversation->user);
+
+    $this->postJson(route('api.v1.conversations.reply', $conversation))->assertConflict();
+
+    Process::assertNothingRan();
 });

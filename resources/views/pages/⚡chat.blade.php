@@ -1,12 +1,11 @@
 <?php
 
+use App\Actions\Chat\ReplyProgress;
 use App\Actions\Chat\ReplyToConversation;
+use App\Jobs\AnswerChatMessage;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Services\Claude\ClaudeException;
 use App\Services\Claude\MessageRole;
-use App\Services\Claude\StreamEvent;
-use App\Services\Claude\StreamEventType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -21,8 +20,6 @@ new #[Title('Chat')] class extends Component {
 
     public string $prompt = '';
 
-    public ?string $error = null;
-
     /**
      * Mount the component.
      */
@@ -36,13 +33,20 @@ new #[Title('Chat')] class extends Component {
     }
 
     /**
-     * Save the user's message, then ask Claude for a reply in a second request so the message shows straight away.
+     * Save the user's message and have Claude answer it in the background,
+     * so the reply carries on if they leave the page.
      */
     public function send(): void
     {
         $validated = $this->validate([
             'prompt' => ['required', 'string', 'max:20000'],
         ]);
+
+        if ($this->isReplying()) {
+            $this->addError('prompt', __('Wait for Claude to finish replying.'));
+
+            return;
+        }
 
         if ($this->conversation === null) {
             $this->conversation = Auth::user()->conversations()->create([
@@ -57,34 +61,42 @@ new #[Title('Chat')] class extends Component {
             'content' => $validated['prompt'],
         ]);
 
-        $this->reset('prompt', 'error');
+        $this->reset('prompt');
 
-        $this->js('$wire.reply()');
+        $this->answer();
     }
 
     /**
-     * Stream Claude's answer to the latest unanswered message.
+     * Ask Claude again to answer the latest message, after a failed or interrupted reply.
      */
-    public function reply(ReplyToConversation $replyToConversation): void
+    public function retry(ReplyToConversation $replyToConversation): void
     {
-        if ($this->conversation === null) {
+        if ($this->conversation === null || $this->isReplying() || $replyToConversation->unansweredMessage($this->conversation) === null) {
             return;
         }
 
-        $this->error = null;
+        $this->answer();
+    }
 
-        try {
-            $replyToConversation->handle($this->conversation, function (StreamEvent $event): void {
-                match ($event->type) {
-                    StreamEventType::TextDelta => $this->stream(e($event->text), to: 'reply'),
-                    StreamEventType::ToolUse => $this->streamToolUse($event->toolName),
-                };
-            });
-        } catch (ClaudeException $exception) {
-            report($exception);
+    /**
+     * What Claude has written so far, or why it failed.
+     *
+     * @return array{status: string|null, text: string, error: string|null}|null
+     */
+    #[Computed]
+    public function progress(): ?array
+    {
+        return $this->conversation !== null ? ReplyProgress::for($this->conversation)->get() : null;
+    }
 
-            $this->error = $exception->getMessage();
-        }
+    /**
+     * Whether the latest message has no reply and none is being written,
+     * for example because an earlier reply was cut off.
+     */
+    #[Computed]
+    public function isUnanswered(): bool
+    {
+        return $this->progress === null && $this->messages->last()?->role === MessageRole::User;
     }
 
     /**
@@ -105,14 +117,16 @@ new #[Title('Chat')] class extends Component {
         return Auth::user()->conversations()->latest('updated_at')->limit(50)->get(['id', 'title', 'updated_at']);
     }
 
-    /**
-     * Show what Claude is doing, and break the reply so text written before
-     * the tool call doesn't run into the text written after it.
-     */
-    protected function streamToolUse(?string $toolName): void
+    protected function answer(): void
     {
-        $this->stream(e(ReplyToConversation::toolStatus($toolName)), replace: true, to: 'status');
-        $this->stream("\n\n", to: 'reply');
+        ReplyProgress::for($this->conversation)->begin();
+
+        AnswerChatMessage::dispatch($this->conversation);
+    }
+
+    protected function isReplying(): bool
+    {
+        return $this->conversation !== null && ReplyProgress::for($this->conversation)->isReplying();
     }
 }; ?>
 
@@ -178,17 +192,25 @@ new #[Title('Chat')] class extends Component {
                     </div>
                 @endforelse
 
-                <div wire:loading.flex wire:target="reply" class="flex-col gap-2">
-                    <flux:text class="animate-pulse" wire:stream.replace="status">{{ __('Thinking…') }}</flux:text>
-                    <div class="whitespace-pre-wrap" wire:stream="reply"></div>
-                </div>
-
-                @if ($error)
+                @if ($this->progress && $this->progress['error'] === null)
+                    <div wire:poll.750ms class="flex flex-col gap-2">
+                        <flux:text class="animate-pulse">{{ $this->progress['status'] ?? __('Thinking…') }}</flux:text>
+                        <div class="whitespace-pre-wrap">{{ $this->progress['text'] }}</div>
+                    </div>
+                @elseif ($this->progress)
                     <flux:callout variant="danger" icon="exclamation-triangle" :heading="__('Claude couldn\'t answer')">
-                        <flux:callout.text>{{ $error }}</flux:callout.text>
+                        <flux:callout.text>{{ $this->progress['error'] }}</flux:callout.text>
 
                         <x-slot name="actions">
-                            <flux:button size="sm" wire:click="reply">{{ __('Try again') }}</flux:button>
+                            <flux:button size="sm" wire:click="retry">{{ __('Try again') }}</flux:button>
+                        </x-slot>
+                    </flux:callout>
+                @elseif ($this->isUnanswered)
+                    <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('No reply yet')">
+                        <flux:callout.text>{{ __('Claude\'s reply to this message was interrupted.') }}</flux:callout.text>
+
+                        <x-slot name="actions">
+                            <flux:button size="sm" wire:click="retry">{{ __('Try again') }}</flux:button>
                         </x-slot>
                     </flux:callout>
                 @endif
@@ -206,7 +228,7 @@ new #[Title('Chat')] class extends Component {
                     autofocus
                 />
 
-                <flux:button type="submit" variant="primary" icon="paper-airplane" wire:loading.attr="disabled" wire:target="send,reply" :aria-label="__('Send')" />
+                <flux:button type="submit" variant="primary" icon="paper-airplane" wire:loading.attr="disabled" wire:target="send,retry" :aria-label="__('Send')" />
             </div>
 
             <flux:error name="prompt" />

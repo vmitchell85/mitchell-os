@@ -12,12 +12,14 @@ use App\Services\Claude\ClaudeException;
 use App\Services\Claude\ClaudeRequest;
 use App\Services\Claude\MessageRole;
 use App\Services\Claude\StreamEvent;
+use App\Services\Claude\StreamEventType;
 use App\Services\Skylight\SkylightTools;
 
 /**
  * Answer the latest unanswered message in a conversation, resuming its
  * Claude session, with web search, the calendar and the household's own
- * meals and lists. Used by the chat page and the API.
+ * meals and lists, recording progress as it goes. Used by the chat page
+ * (through a queued job) and the API.
  */
 class ReplyToConversation
 {
@@ -43,16 +45,34 @@ class ReplyToConversation
             return null;
         }
 
-        $result = $this->claude->stream(new ClaudeRequest(
-            prompt: $question->content,
-            feature: 'chat',
-            user: $conversation->user,
-            systemPrompt: $this->systemPrompt($conversation),
-            tools: self::Tools,
-            resumeSessionId: $conversation->claude_session_id,
-            persistSession: true,
-            environment: [HouseholdServer::UserEnvironmentVariable => (string) $conversation->user_id],
-        ), $onEvent ?? function (): void {});
+        $progress = ReplyProgress::for($conversation);
+        $progress->begin();
+
+        try {
+            $result = $this->claude->stream(new ClaudeRequest(
+                prompt: $question->content,
+                feature: 'chat',
+                user: $conversation->user,
+                systemPrompt: $this->systemPrompt($conversation),
+                tools: self::Tools,
+                resumeSessionId: $conversation->claude_session_id,
+                persistSession: true,
+                environment: [HouseholdServer::UserEnvironmentVariable => (string) $conversation->user_id],
+            ), function (StreamEvent $event) use ($progress, $onEvent): void {
+                match ($event->type) {
+                    StreamEventType::TextDelta => $progress->append((string) $event->text),
+                    StreamEventType::ToolUse => $progress->usingTool(self::toolStatus($event->toolName)),
+                };
+
+                if ($onEvent !== null) {
+                    $onEvent($event);
+                }
+            });
+        } catch (ClaudeException $exception) {
+            $progress->fail($exception->getMessage());
+
+            throw $exception;
+        }
 
         $isFirstReply = $conversation->claude_session_id === null;
 
@@ -63,6 +83,8 @@ class ReplyToConversation
             'content' => $result->text,
             'claude_run_id' => $result->run->id,
         ]);
+
+        $progress->clear();
 
         if ($isFirstReply) {
             GenerateConversationTitle::dispatch($conversation);
