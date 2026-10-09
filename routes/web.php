@@ -8,6 +8,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
     Route::livewire('chat/{conversation?}', 'pages::chat')->name('chat');
+
+    Route::livewire('lists/{shoppingList?}', 'pages::lists')->name('lists');
 });
 
 require __DIR__.'/settings.php';
