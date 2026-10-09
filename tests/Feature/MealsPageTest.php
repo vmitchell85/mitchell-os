@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Meal;
+use App\Models\ShoppingList;
 use App\Models\User;
 use App\Services\Skylight\SkylightClient;
 use Livewire\Livewire;
@@ -191,4 +192,42 @@ it('syncs meals with skylight from the page', function () {
         ->call('sync')
         ->assertDispatched('toast-show', fn (string $event, array $params) => $params['slots']['text'] === '1 change from Skylight.')
         ->assertSee('Fish and chips');
+});
+
+it('builds a shopping list from the week\'s meals and adds only the ticked items', function () {
+    $user = User::factory()->create();
+    $groceries = ShoppingList::factory()->create(['name' => 'Groceries', 'is_default' => true]);
+    Meal::factory()->create(['date' => '2026-10-07', 'name' => 'Bolognese']);
+    $captured = fakeClaudeProcess(claudeStructuredResult(['items' => [
+        ['name' => '500g beef mince', 'section' => 'Meat', 'meals' => ['Bolognese']],
+        ['name' => 'Spaghetti', 'section' => 'Pasta', 'meals' => ['Bolognese']],
+    ]]));
+
+    $page = Livewire::actingAs($user)
+        ->test('pages::meals')
+        ->call('openShoppingList')
+        ->assertSet('shoppingListId', $groceries->id)
+        ->assertSet('shopFrom', '2026-10-05')
+        ->assertSet('shopTo', '2026-10-11')
+        ->call('buildShoppingList')
+        ->assertSee('500g beef mince')
+        ->assertSee('For Bolognese')
+        ->set('selectedProposals', ['0'])
+        ->call('addProposals')
+        ->assertDispatched('toast-show', fn (string $event, array $params) => $params['slots']['text'] === 'Added 1 item to Groceries.');
+
+    expect($groceries->items()->get()->map(fn ($item) => [$item->name, $item->section, $item->added_by])->all())
+        ->toBe([['500g beef mince', 'Meat', $user->id]]);
+    $page->assertSet('proposals', []);
+});
+
+it('requires the shopping list dates to be in order', function () {
+    ShoppingList::factory()->create();
+
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::meals')
+        ->call('openShoppingList')
+        ->set('shopTo', '2026-10-01')
+        ->call('buildShoppingList')
+        ->assertHasErrors(['shopTo' => 'after_or_equal']);
 });

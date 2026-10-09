@@ -1,9 +1,11 @@
 <?php
 
+use App\Actions\Meals\BuildShoppingList;
 use App\Actions\Meals\DraftMealPlan;
 use App\Actions\Meals\RegenerateMeal;
 use App\Actions\Skylight\SyncWithSkylight;
 use App\Models\Meal;
+use App\Models\ShoppingList;
 use App\Services\Claude\ClaudeException;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
@@ -42,6 +44,27 @@ new #[Title('Meals')] class extends Component {
     public string $mealDescription = '';
 
     public string $mealNote = '';
+
+    public ?int $shoppingListId = null;
+
+    public string $shopFrom = '';
+
+    public string $shopTo = '';
+
+    /**
+     * What Claude suggests buying, awaiting review.
+     *
+     * @var list<array{name: string, section: string|null, meals: list<string>}>
+     */
+    #[Locked]
+    public array $proposals = [];
+
+    /**
+     * Indexes of the proposals to add.
+     *
+     * @var list<int|string>
+     */
+    public array $selectedProposals = [];
 
     /**
      * Mount the component, showing this week unless a valid week is given.
@@ -197,6 +220,103 @@ new #[Title('Meals')] class extends Component {
         Flux::modal('meal-form')->close();
     }
 
+    public function openShoppingList(): void
+    {
+        $this->reset('proposals', 'selectedProposals');
+        $this->shoppingListId = ShoppingList::orderByDesc('is_default')->orderBy('name')->value('id');
+        $this->shopFrom = $this->weekStart()->toDateString();
+        $this->shopTo = $this->weekStart()->addDays(6)->toDateString();
+        $this->resetValidation();
+
+        Flux::modal('shopping-list')->show();
+    }
+
+    public function buildShoppingList(BuildShoppingList $buildShoppingList): void
+    {
+        $validated = $this->validate([
+            'shoppingListId' => ['required', 'integer', Rule::exists('shopping_lists', 'id')],
+            'shopFrom' => ['required', 'date'],
+            'shopTo' => ['required', 'date', 'after_or_equal:shopFrom'],
+        ]);
+
+        try {
+            $this->proposals = $buildShoppingList->handle(
+                Auth::user(),
+                ShoppingList::findOrFail($validated['shoppingListId']),
+                CarbonImmutable::parse($validated['shopFrom']),
+                CarbonImmutable::parse($validated['shopTo']),
+            );
+        } catch (ClaudeException $exception) {
+            report($exception);
+            Flux::toast(variant: 'danger', heading: __('Claude couldn\'t build the list'), text: $exception->getMessage());
+
+            return;
+        }
+
+        $this->selectedProposals = array_keys($this->proposals);
+
+        if ($this->proposals === []) {
+            Flux::toast(variant: 'warning', text: __('Nothing to add: there are no approved meals in those dates, or everything is already on the list.'));
+        }
+    }
+
+    public function startOver(): void
+    {
+        $this->reset('proposals', 'selectedProposals');
+    }
+
+    public function addProposals(): void
+    {
+        $list = ShoppingList::findOrFail($this->shoppingListId);
+        $position = (int) $list->items()->max('position');
+        $added = 0;
+
+        foreach ($this->selectedProposals as $index) {
+            $proposal = $this->proposals[(int) $index] ?? null;
+
+            if ($proposal === null) {
+                continue;
+            }
+
+            $list->items()->create([
+                'name' => $proposal['name'],
+                'section' => $proposal['section'],
+                'position' => ++$position,
+                'added_by' => Auth::id(),
+            ]);
+            $added++;
+        }
+
+        $this->reset('proposals', 'selectedProposals');
+        Flux::modal('shopping-list')->close();
+
+        Flux::toast(
+            variant: 'success',
+            text: trans_choice('Added :count item to :list.|Added :count items to :list.', $added, ['list' => $list->name]),
+            link: route('lists', $list),
+        );
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, ShoppingList>
+     */
+    #[Computed]
+    public function shoppingLists(): \Illuminate\Database\Eloquent\Collection
+    {
+        return ShoppingList::orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
+     * Proposals grouped by section, keeping their indexes for selection.
+     *
+     * @return Collection<string, Collection<int, array{name: string, section: string|null, meals: list<string>}>>
+     */
+    #[Computed]
+    public function proposalsBySection(): Collection
+    {
+        return collect($this->proposals)->groupBy(fn (array $proposal): string => $proposal['section'] ?? __('Other'), preserveKeys: true)->sortKeys();
+    }
+
     /**
      * The week's days, each with its meals in breakfast, lunch, dinner order.
      *
@@ -251,6 +371,8 @@ new #[Title('Meals')] class extends Component {
         </div>
 
         <div class="flex items-center gap-2">
+            <flux:button size="sm" icon="shopping-cart" wire:click="openShoppingList">{{ __('Shopping list') }}</flux:button>
+
             <flux:modal.trigger name="plan-week">
                 <flux:button size="sm" variant="primary" icon="sparkles">{{ __('Plan with Claude') }}</flux:button>
             </flux:modal.trigger>
@@ -364,6 +486,65 @@ new #[Title('Meals')] class extends Component {
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="plan">{{ __('Suggest meals') }}</flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    <flux:modal name="shopping-list" class="md:w-[32rem]">
+        @if ($proposals === [])
+            <form wire:submit="buildShoppingList" class="flex flex-col gap-6">
+                <div>
+                    <flux:heading size="lg">{{ __('Shopping list from meals') }}</flux:heading>
+                    <flux:text class="mt-2">{{ __('Claude works out the ingredients for the approved meals in these dates, leaving out what\'s already on the list. You review them before anything is added.') }}</flux:text>
+                </div>
+
+                <flux:select wire:model="shoppingListId" :label="__('Add to')">
+                    @foreach ($this->shoppingLists as $shoppingList)
+                        <flux:select.option :value="$shoppingList->id">{{ $shoppingList->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <flux:input type="date" wire:model="shopFrom" :label="__('From')" />
+                    <flux:input type="date" wire:model="shopTo" :label="__('To')" />
+                </div>
+
+                <div class="flex items-center justify-end gap-3">
+                    <flux:text size="sm" wire:loading wire:target="buildShoppingList">{{ __('Working out ingredients…') }}</flux:text>
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="buildShoppingList">{{ __('Work out ingredients') }}</flux:button>
+                </div>
+            </form>
+        @else
+            <form wire:submit="addProposals" class="flex flex-col gap-5">
+                <div>
+                    <flux:heading size="lg">{{ __('Review the shopping list') }}</flux:heading>
+                    <flux:text class="mt-2">{{ __('Untick anything you already have.') }}</flux:text>
+                </div>
+
+                <div class="flex max-h-[50vh] flex-col gap-4 overflow-y-auto">
+                    @foreach ($this->proposalsBySection as $sectionName => $sectionProposals)
+                        <div wire:key="proposal-section-{{ $sectionName }}" class="flex flex-col gap-1">
+                            <flux:heading size="sm" class="text-zinc-500 uppercase">{{ $sectionName }}</flux:heading>
+
+                            @foreach ($sectionProposals as $index => $proposal)
+                                <label wire:key="proposal-{{ $index }}" class="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                                    <input type="checkbox" wire:model="selectedProposals" value="{{ $index }}" class="mt-1 size-4 shrink-0 accent-zinc-800 dark:accent-zinc-200" />
+                                    <span class="flex flex-col">
+                                        <span>{{ $proposal['name'] }}</span>
+                                        @if ($proposal['meals'] !== [])
+                                            <span class="text-xs text-zinc-500">{{ __('For :meals', ['meals' => implode(', ', $proposal['meals'])]) }}</span>
+                                        @endif
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="flex justify-between gap-3">
+                    <flux:button variant="ghost" wire:click="startOver">{{ __('Start over') }}</flux:button>
+                    <flux:button type="submit" variant="primary">{{ __('Add selected items') }}</flux:button>
+                </div>
+            </form>
+        @endif
     </flux:modal>
 
     <flux:modal name="meal-form" class="md:w-[28rem]">
