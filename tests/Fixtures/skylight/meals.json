@@ -1,0 +1,58 @@
+[
+  {
+    "summary": "Spaghetti bolognese",
+    "description": "Mince, tomatoes, spaghetti",
+    "note": "Double batch",
+    "rrule": null,
+    "draft": false,
+    "recurring": false,
+    "instances": [
+      "2026-10-12"
+    ],
+    "id": "3001",
+    "type": "meal_sitting",
+    "meal_category": {
+      "color": "#FDC36D",
+      "icon": "meals",
+      "label": "Dinner",
+      "enabled": true,
+      "position": 3,
+      "id": "503",
+      "type": "meal_category"
+    },
+    "profiles": []
+  },
+  {
+    "summary": "",
+    "description": "",
+    "note": "",
+    "rrule": "FREQ=WEEKLY;INTERVAL=1",
+    "draft": false,
+    "recurring": true,
+    "instances": [
+      "2026-10-09",
+      "2026-10-16"
+    ],
+    "id": "3002",
+    "type": "meal_sitting",
+    "meal_category": {
+      "color": "#FDC36D",
+      "icon": "meals",
+      "label": "Dinner",
+      "enabled": true,
+      "position": 3,
+      "id": "503",
+      "type": "meal_category"
+    },
+    "meal_recipe": {
+      "summary": "Fish and chips",
+      "description": "",
+      "draft": false,
+      "image_url": null,
+      "source": null,
+      "id": "601",
+      "type": "meal_recipe"
+    },
+    "profiles": []
+  }
+]

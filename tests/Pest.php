@@ -84,3 +84,11 @@ function claudeFixture(string $name): string
 {
     return file_get_contents(base_path("tests/Fixtures/claude/{$name}"));
 }
+
+/**
+ * @return array<int|string, mixed>
+ */
+function skylightFixture(string $name): array
+{
+    return json_decode(file_get_contents(base_path("tests/Fixtures/skylight/{$name}.json")), true);
+}

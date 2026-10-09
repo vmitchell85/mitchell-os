@@ -1,0 +1,32 @@
+[
+  {
+    "label": "To do",
+    "color": "#42D792",
+    "kind": "other",
+    "hide_on_device": false,
+    "draft": false,
+    "default_grocery_list": false,
+    "id": "9001",
+    "type": "list"
+  },
+  {
+    "label": "Groceries",
+    "color": "#42D792",
+    "kind": "shopping",
+    "hide_on_device": false,
+    "draft": false,
+    "default_grocery_list": true,
+    "id": "9002",
+    "type": "list"
+  },
+  {
+    "label": "Costco",
+    "color": "#42D792",
+    "kind": "shopping",
+    "hide_on_device": false,
+    "draft": false,
+    "default_grocery_list": false,
+    "id": "9003",
+    "type": "list"
+  }
+]

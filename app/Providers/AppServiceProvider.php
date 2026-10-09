@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Mcp\StdioMcpClient;
+use App\Services\Skylight\SkylightClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(SkylightClient::class, fn (): SkylightClient => new SkylightClient(StdioMcpClient::forServer('skylight')));
     }
 
     /**

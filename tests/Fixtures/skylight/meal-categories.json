@@ -1,0 +1,38 @@
+[
+  {
+    "color": "#FDC36D",
+    "icon": "meals",
+    "label": "Breakfast",
+    "enabled": true,
+    "position": 1,
+    "id": "501",
+    "type": "meal_category"
+  },
+  {
+    "color": "#FDC36D",
+    "icon": "meals",
+    "label": "Lunch",
+    "enabled": true,
+    "position": 2,
+    "id": "502",
+    "type": "meal_category"
+  },
+  {
+    "color": "#FDC36D",
+    "icon": "meals",
+    "label": "Dinner",
+    "enabled": true,
+    "position": 3,
+    "id": "503",
+    "type": "meal_category"
+  },
+  {
+    "color": "#FDC36D",
+    "icon": "meals",
+    "label": "Sides",
+    "enabled": false,
+    "position": 4,
+    "id": "504",
+    "type": "meal_category"
+  }
+]
