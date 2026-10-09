@@ -42,7 +42,7 @@ class ListMealsTool extends Tool
                 'category' => $meal->category,
                 'name' => $meal->name,
                 'status' => $meal->isDraft() ? 'suggestion awaiting approval' : 'planned',
-                'ingredients' => $meal->description ? explode("\n", $meal->description) : [],
+                'ingredients' => $meal->ingredients(),
                 'note' => $meal->note,
             ])->all(),
         ]);

@@ -163,14 +163,9 @@ new #[Title('Meals')] class extends Component {
         $this->weekMeals()->drafts()->forceDelete();
     }
 
-    /**
-     * Approved meals are soft-deleted so the next sync removes them from Skylight too.
-     */
     public function remove(int $mealId): void
     {
-        $meal = Meal::findOrFail($mealId);
-
-        $meal->isDraft() ? $meal->forceDelete() : $meal->delete();
+        Meal::findOrFail($mealId)->removeFromPlan();
     }
 
     public function newMeal(string $date): void
@@ -276,7 +271,6 @@ new #[Title('Meals')] class extends Component {
     public function addProposals(): void
     {
         $list = ShoppingList::findOrFail($this->shoppingListId);
-        $position = (int) $list->items()->max('position');
         $added = 0;
 
         foreach ($this->selectedProposals as $index) {
@@ -286,12 +280,7 @@ new #[Title('Meals')] class extends Component {
                 continue;
             }
 
-            $list->items()->create([
-                'name' => $proposal['name'],
-                'section' => $proposal['section'],
-                'position' => ++$position,
-                'added_by' => Auth::id(),
-            ]);
+            $list->addItem($proposal['name'], $proposal['section'], Auth::id());
             $added++;
         }
 

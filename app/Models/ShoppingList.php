@@ -64,10 +64,33 @@ class ShoppingList extends Model
     }
 
     /**
+     * Add an item to the end of the list.
+     */
+    public function addItem(string $name, ?string $section = null, ?int $addedBy = null): ShoppingListItem
+    {
+        return $this->items()->create([
+            'name' => $name,
+            'section' => $section,
+            'position' => (int) $this->items()->max('position') + 1,
+            'added_by' => $addedBy,
+        ]);
+    }
+
+    /**
      * @return HasMany<ShoppingListItem, $this>
      */
     public function items(): HasMany
     {
         return $this->hasMany(ShoppingListItem::class);
+    }
+
+    /**
+     * Items still to buy.
+     *
+     * @return HasMany<ShoppingListItem, $this>
+     */
+    public function pendingItems(): HasMany
+    {
+        return $this->items()->whereNull('completed_at');
     }
 }

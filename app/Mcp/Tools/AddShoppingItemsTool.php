@@ -39,7 +39,6 @@ class AddShoppingItemsTool extends Tool
         }
 
         $onList = $list->items()->whereNull('completed_at')->pluck('name')->map(fn (string $name): string => Str::lower(trim($name)))->flip();
-        $position = (int) $list->items()->max('position');
         $added = [];
         $skipped = [];
 
@@ -52,12 +51,7 @@ class AddShoppingItemsTool extends Tool
                 continue;
             }
 
-            $list->items()->create([
-                'name' => $name,
-                'section' => trim($item['section'] ?? '') ?: null,
-                'position' => ++$position,
-                'added_by' => $request->user()?->getAuthIdentifier(),
-            ]);
+            $list->addItem($name, trim($item['section'] ?? '') ?: null, $request->user()?->getAuthIdentifier());
             $onList->put(Str::lower($name), true);
             $added[] = $name;
         }

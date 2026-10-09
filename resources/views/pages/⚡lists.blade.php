@@ -78,12 +78,7 @@ new #[Title('Shopping lists')] class extends Component {
             'section' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $this->list->items()->create([
-            'name' => $validated['name'],
-            'section' => $validated['section'] ?: null,
-            'position' => (int) $this->list->items()->max('position') + 1,
-            'added_by' => Auth::id(),
-        ]);
+        $this->list->addItem($validated['name'], $validated['section'] ?: null, Auth::id());
 
         $this->reset('name');
     }

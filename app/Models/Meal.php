@@ -95,6 +95,25 @@ class Meal extends Model
     }
 
     /**
+     * The description, which holds one ingredient per line.
+     *
+     * @return list<string>
+     */
+    public function ingredients(): array
+    {
+        return array_values(array_filter(array_map('trim', explode("\n", $this->description ?? ''))));
+    }
+
+    /**
+     * Drafts never reached Skylight, so they're deleted outright. Approved
+     * meals are soft-deleted so the next sync removes them from Skylight too.
+     */
+    public function removeFromPlan(): void
+    {
+        $this->isDraft() ? $this->forceDelete() : $this->delete();
+    }
+
+    /**
      * The fields sync compares, in the same shape as skylight_snapshot.
      *
      * @return array{date: string, category: string, name: string, description: string, note: string}
