@@ -177,12 +177,50 @@ it('keeps an item edited in skylight that was deleted here, restoring it', funct
     expect($report->kept)->toBe(1);
 });
 
-it('unlinks a local list whose skylight list was removed, keeping its items', function () {
+it('keeps a list removed from skylight, with its items, and does not re-create it', function () {
     [$skylight, $list] = syncedGroceries();
     unset($skylight->lists['9002']);
 
     syncShoppingLists($skylight);
+    syncShoppingLists($skylight);
 
-    expect($list->fresh()->skylight_id)->toBeNull();
+    expect($list->fresh())->skylight_id->toBeNull()->removed_from_skylight_at->not->toBeNull();
     expect($list->items()->count())->toBe(2);
+    expect($skylight->writtenTools())->not->toContain('skylight_create_list');
+});
+
+it('creates lists made here in skylight, along with their items', function () {
+    [$skylight] = syncedGroceries();
+    $party = ShoppingList::factory()->create(['name' => 'Party', 'color' => '#F28B82']);
+    ShoppingListItem::factory()->for($party)->create(['name' => 'Balloons', 'section' => 'Decorations']);
+
+    $report = syncShoppingLists($skylight);
+
+    $party->refresh();
+    expect($skylight->lists[$party->skylight_id])->toMatchArray(['label' => 'Party', 'color' => '#F28B82', 'kind' => 'shopping']);
+    expect(array_values($skylight->items[$party->skylight_id]))->sequence(
+        fn ($item) => $item->toMatchArray(['label' => 'Balloons', 'section' => 'Decorations']),
+    );
+    expect($report->pushed)->toBe(2);
+});
+
+it('renames a list in skylight when it was renamed here', function () {
+    [$skylight, $list] = syncedGroceries();
+    $list->update(['name' => 'Weekly shop']);
+    $skylight->lists['9002']['label'] = 'Food';
+
+    syncShoppingLists($skylight);
+
+    expect($skylight->lists['9002']['label'])->toBe('Weekly shop');
+    expect($list->fresh()->name)->toBe('Weekly shop');
+});
+
+it('takes a list name changed in skylight when it was not renamed here', function () {
+    [$skylight, $list] = syncedGroceries();
+    $skylight->lists['9002']['label'] = 'Food';
+
+    syncShoppingLists($skylight);
+
+    expect($list->fresh()->name)->toBe('Food');
+    expect($skylight->writes)->toBe([]);
 });

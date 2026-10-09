@@ -77,12 +77,38 @@ class FakeSkylight implements McpClient
 
         return match ($name) {
             'skylight_list_lists' => array_values($this->lists),
+            'skylight_create_list' => $this->createList($arguments),
+            'skylight_update_list' => $this->renameList($arguments),
             'skylight_get_list_items' => array_values($this->items[$arguments['listId']]),
             'skylight_add_list_item' => $this->item($arguments['listId'], $this->addItem($arguments['listId'], $arguments['label'])),
             'skylight_update_list_item' => $this->updateItem($arguments),
             'skylight_delete_list_item' => $this->deleteItem($arguments),
             default => throw new LogicException("FakeSkylight does not support the [{$name}] tool."),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function createList(array $arguments): array
+    {
+        $id = (string) $this->nextId++;
+        $this->addList($id, $arguments['label'], $arguments['kind']);
+        $this->lists[$id]['color'] = $arguments['color'];
+
+        return $this->lists[$id];
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function renameList(array $arguments): array
+    {
+        $this->lists[$arguments['listId']]['label'] = $arguments['label'];
+
+        return $this->lists[$arguments['listId']];
     }
 
     /**

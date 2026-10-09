@@ -8,6 +8,7 @@ use Flux\Flux;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -28,6 +29,12 @@ new #[Title('Shopping lists')] class extends Component {
 
     public string $editSection = '';
 
+    public string $newListName = '';
+
+    public string $newListColor = ShoppingList::DefaultColor;
+
+    public string $listName = '';
+
     /**
      * Mount the component, showing the default list when none is chosen.
      */
@@ -36,6 +43,34 @@ new #[Title('Shopping lists')] class extends Component {
         $this->list = $shoppingList?->exists
             ? $shoppingList
             : ShoppingList::orderByDesc('is_default')->orderBy('name')->first();
+
+        $this->listName = $this->list->name ?? '';
+    }
+
+    /**
+     * Lists made here are created in Skylight at the next sync.
+     */
+    public function createList(): void
+    {
+        $validated = $this->validate([
+            'newListName' => ['required', 'string', 'max:100'],
+            'newListColor' => ['required', Rule::in(ShoppingList::Colors)],
+        ]);
+
+        $list = ShoppingList::create(['name' => $validated['newListName'], 'color' => $validated['newListColor']]);
+
+        $this->redirectRoute('lists', $list, navigate: true);
+    }
+
+    public function renameList(): void
+    {
+        $validated = $this->validate([
+            'listName' => ['required', 'string', 'max:100'],
+        ]);
+
+        $this->list->update(['name' => $validated['listName']]);
+
+        Flux::modal('rename-list')->close();
     }
 
     public function addItem(): void
@@ -185,6 +220,10 @@ new #[Title('Shopping lists')] class extends Component {
         </div>
 
         <div class="flex items-center gap-3">
+            <flux:modal.trigger name="new-list">
+                <flux:button size="sm" icon="plus">{{ __('New list') }}</flux:button>
+            </flux:modal.trigger>
+
             @if ($list?->last_synced_at)
                 <flux:text size="sm">{{ __('Synced :time', ['time' => $list->last_synced_at->diffForHumans()]) }}</flux:text>
             @endif
@@ -196,12 +235,66 @@ new #[Title('Shopping lists')] class extends Component {
         </div>
     </div>
 
+    <flux:modal name="new-list" class="md:w-96">
+        <form wire:submit="createList" class="flex flex-col gap-6">
+            <div>
+                <flux:heading size="lg">{{ __('New shopping list') }}</flux:heading>
+                <flux:text class="mt-2">{{ __('It will be added to Skylight at the next sync.') }}</flux:text>
+            </div>
+
+            <flux:input wire:model="newListName" :label="__('Name')" />
+
+            <fieldset>
+                <legend class="mb-2 text-sm font-medium">{{ __('Colour') }}</legend>
+                <div class="flex gap-3">
+                    @foreach (ShoppingList::Colors as $color)
+                        <label wire:key="color-{{ $color }}" class="cursor-pointer">
+                            <input type="radio" wire:model="newListColor" value="{{ $color }}" class="peer sr-only" />
+                            <span class="block size-8 rounded-full ring-offset-2 peer-checked:ring-2 peer-checked:ring-zinc-800 peer-focus-visible:ring-2 dark:ring-offset-zinc-800 dark:peer-checked:ring-white" style="background-color: {{ $color }}"></span>
+                            <span class="sr-only">{{ $color }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
+
+            <div class="flex justify-end">
+                <flux:button type="submit" variant="primary">{{ __('Create list') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
     @if ($list === null)
         <div class="flex flex-col items-center gap-2 py-24 text-center">
             <flux:heading size="xl">{{ __('No shopping lists yet') }}</flux:heading>
             <flux:text>{{ __('Sync with Skylight to bring in your shopping lists.') }}</flux:text>
         </div>
     @else
+        <div class="flex items-center gap-2">
+            <flux:heading size="xl">{{ $list->name }}</flux:heading>
+
+            <flux:modal.trigger name="rename-list">
+                <flux:button size="xs" variant="ghost" icon="pencil-square" :aria-label="__('Rename list')" />
+            </flux:modal.trigger>
+
+            @if ($list->removed_from_skylight_at)
+                <flux:badge size="sm" color="amber">{{ __('Removed from Skylight') }}</flux:badge>
+            @elseif ($list->skylight_id === null)
+                <flux:badge size="sm">{{ __('Not synced yet') }}</flux:badge>
+            @endif
+        </div>
+
+        <flux:modal name="rename-list" class="md:w-96">
+            <form wire:submit="renameList" class="flex flex-col gap-6">
+                <flux:heading size="lg">{{ __('Rename list') }}</flux:heading>
+
+                <flux:input wire:model="listName" :label="__('Name')" />
+
+                <div class="flex justify-end">
+                    <flux:button type="submit" variant="primary">{{ __('Save') }}</flux:button>
+                </div>
+            </form>
+        </flux:modal>
+
         <form wire:submit="addItem" class="flex flex-col gap-2 sm:flex-row sm:items-start">
             <div class="flex-1">
                 <flux:input wire:model="name" :placeholder="__('Add an item…')" :aria-label="__('Item')" />

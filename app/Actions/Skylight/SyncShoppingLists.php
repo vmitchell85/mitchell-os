@@ -6,11 +6,13 @@ use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Services\Mcp\McpException;
 use App\Services\Skylight\SkylightClient;
+use App\Services\Skylight\SkylightList;
 use App\Services\Skylight\SkylightListItem;
 use Illuminate\Support\Collection;
 
 /**
- * Two-way sync of every Skylight shopping list with the local copies.
+ * Two-way sync of every Skylight shopping list with the local copies, and
+ * of lists made here, which are created in Skylight.
  *
  * Skylight doesn't say when an item last changed, so each item keeps a
  * snapshot of the state both sides agreed on at the last sync. Comparing
@@ -29,26 +31,65 @@ class SyncShoppingLists
     public function handle(?SyncReport $report = null): SyncReport
     {
         $report ??= new SyncReport;
-        $linkedListIds = [];
 
-        foreach ($this->skylight->shoppingLists() as $remoteList) {
-            $list = ShoppingList::updateOrCreate(['skylight_id' => $remoteList->id], [
-                'name' => $remoteList->label,
-                'color' => $remoteList->color,
-                'is_default' => $remoteList->isDefaultGroceryList,
-            ]);
+        /** @var Collection<string, SkylightList> $remoteLists */
+        $remoteLists = collect($this->skylight->shoppingLists())->keyBy('id');
 
-            $this->syncItems($list, $report);
+        foreach (ShoppingList::whereNotNull('skylight_id')->get() as $list) {
+            $remoteList = $remoteLists->pull($list->skylight_id);
 
-            $list->update(['last_synced_at' => now()]);
-            $linkedListIds[] = $remoteList->id;
+            if ($remoteList === null) {
+                $list->update(['skylight_id' => null, 'removed_from_skylight_at' => now()]);
+
+                continue;
+            }
+
+            $this->syncList($list, $remoteList, $report);
         }
 
-        ShoppingList::whereNotNull('skylight_id')
-            ->whereNotIn('skylight_id', $linkedListIds)
-            ->update(['skylight_id' => null]);
+        foreach ($remoteLists as $remoteList) {
+            $list = new ShoppingList(['name' => $remoteList->label, 'skylight_snapshot' => ['name' => $remoteList->label]]);
+            $this->syncList($list, $remoteList, $report);
+        }
+
+        $listsMadeHere = ShoppingList::whereNull('skylight_id')->whereNull('removed_from_skylight_at')->get();
+
+        foreach ($listsMadeHere as $list) {
+            $remoteList = $this->skylight->createShoppingList($list->name, $list->color ?? ShoppingList::DefaultColor);
+            $list->skylight_snapshot = ['name' => $remoteList->label];
+            $report->pushed++;
+
+            $this->syncList($list, $remoteList, $report);
+        }
 
         return $report;
+    }
+
+    /**
+     * Sync a list's name (this app wins, like item names), then its items.
+     */
+    protected function syncList(ShoppingList $list, SkylightList $remoteList, SyncReport $report): void
+    {
+        $agreedName = $list->skylight_snapshot['name'] ?? $remoteList->label;
+
+        if ($list->name !== $agreedName && $list->name !== $remoteList->label) {
+            $remoteList = $this->skylight->renameList($remoteList->id, $list->name);
+            $report->pushed++;
+        } elseif ($list->name === $agreedName && $remoteList->label !== $agreedName) {
+            $list->name = $remoteList->label;
+            $report->pulled++;
+        }
+
+        $list->fill([
+            'skylight_id' => $remoteList->id,
+            'skylight_snapshot' => ['name' => $list->name],
+            'color' => $remoteList->color,
+            'is_default' => $remoteList->isDefaultGroceryList,
+        ])->save();
+
+        $this->syncItems($list, $report);
+
+        $list->update(['last_synced_at' => now()]);
     }
 
     protected function syncItems(ShoppingList $list, SyncReport $report): void

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Mcp\StdioMcpClient;
 use App\Services\Skylight\SkylightClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        DevCommands::artisan('schedule:work', 'scheduler');
     }
 
     /**

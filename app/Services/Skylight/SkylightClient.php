@@ -36,6 +36,22 @@ class SkylightClient
     }
 
     /**
+     * @throws McpException
+     */
+    public function createShoppingList(string $label, string $color): SkylightList
+    {
+        return SkylightList::fromArray($this->record('skylight_create_list', ['label' => $label, 'color' => $color, 'kind' => 'shopping']));
+    }
+
+    /**
+     * @throws McpException
+     */
+    public function renameList(string $listId, string $label): SkylightList
+    {
+        return SkylightList::fromArray($this->record('skylight_update_list', ['listId' => $listId, 'label' => $label]));
+    }
+
+    /**
      * @return list<SkylightListItem>
      *
      * @throws McpException

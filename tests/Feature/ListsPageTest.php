@@ -146,3 +146,40 @@ it('does not start a second sync while one is running', function () {
     expect(ShoppingList::count())->toBe(0);
     $lock->release();
 });
+
+it('creates a list to be added to skylight at the next sync and opens it', function () {
+    $component = Livewire::actingAs(User::factory()->create())
+        ->test('pages::lists')
+        ->set('newListName', 'Party')
+        ->set('newListColor', '#F28B82')
+        ->call('createList')
+        ->assertHasNoErrors();
+
+    $list = ShoppingList::sole();
+    expect($list)->name->toBe('Party')->color->toBe('#F28B82')->skylight_id->toBeNull();
+    $component->assertRedirect(route('lists', $list));
+});
+
+it('only accepts the offered colours for a new list', function () {
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::lists')
+        ->set('newListName', 'Party')
+        ->set('newListColor', 'red; background: url(x)')
+        ->call('createList')
+        ->assertHasErrors(['newListColor' => 'in']);
+
+    expect(ShoppingList::count())->toBe(0);
+});
+
+it('renames the list', function () {
+    $list = ShoppingList::factory()->fromSkylight()->create(['name' => 'Groceries']);
+
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::lists', ['shoppingList' => $list])
+        ->assertSet('listName', 'Groceries')
+        ->set('listName', 'Weekly shop')
+        ->call('renameList')
+        ->assertHasNoErrors();
+
+    expect($list->fresh()->name)->toBe('Weekly shop');
+});
