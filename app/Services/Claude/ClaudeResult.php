@@ -2,6 +2,8 @@
 
 namespace App\Services\Claude;
 
+use App\Models\ClaudeRun;
+
 final readonly class ClaudeResult
 {
     /**
@@ -15,6 +17,7 @@ final readonly class ClaudeResult
         public int $inputTokens,
         public int $outputTokens,
         public int $durationMs,
+        public ClaudeRun $run,
     ) {}
 
     /**
@@ -22,7 +25,7 @@ final readonly class ClaudeResult
      *
      * @param  array<string, mixed>  $event
      */
-    public static function fromEvent(array $event): self
+    public static function fromEvent(array $event, ClaudeRun $run): self
     {
         $usage = $event['usage'] ?? [];
 
@@ -36,6 +39,7 @@ final readonly class ClaudeResult
                 + ($usage['cache_read_input_tokens'] ?? 0),
             outputTokens: $usage['output_tokens'] ?? 0,
             durationMs: $event['duration_ms'] ?? 0,
+            run: $run,
         );
     }
 }

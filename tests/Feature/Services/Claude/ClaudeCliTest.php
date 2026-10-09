@@ -1,12 +1,19 @@
 <?php
 
+use App\Models\ClaudeRun;
+use App\Models\User;
 use App\Services\Claude\ClaudeCli;
 use App\Services\Claude\ClaudeException;
 use App\Services\Claude\ClaudeRequest;
+use App\Services\Claude\ClaudeRunStatus;
 use App\Services\Claude\StreamEvent;
 use App\Services\Claude\StreamEventType;
+use Illuminate\Process\Exceptions\ProcessTimedOutException;
+use Illuminate\Process\FakeProcessResult;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Process;
+use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyTimeoutException;
+use Symfony\Component\Process\Process as SymfonyProcess;
 
 beforeEach(function () {
     config([
@@ -139,17 +146,64 @@ describe('ask', function () {
         expect($command)->not->toContain('--no-session-persistence');
     });
 
-    it('throws with the CLI output when the process fails without a result', function () {
+    it('throws and records a failed run when the process fails without a result', function () {
         fakeClaudeProcess(exitCode: 1, errorOutput: 'No conversation found with session ID: missing');
 
-        app(ClaudeCli::class)->ask(new ClaudeRequest('Hello', resumeSessionId: 'missing'));
-    })->throws(ClaudeException::class, 'Claude exited with code 1: No conversation found with session ID: missing');
+        expect(fn () => app(ClaudeCli::class)->ask(new ClaudeRequest('Hello', resumeSessionId: 'missing')))
+            ->toThrow(ClaudeException::class, 'Claude exited with code 1: No conversation found with session ID: missing');
 
-    it('throws the reported reason when claude returns an error result', function () {
+        expect(ClaudeRun::sole())
+            ->status->toBe(ClaudeRunStatus::Failed)
+            ->error->toBe('Claude exited with code 1: No conversation found with session ID: missing')
+            ->cost_usd->toBe(0.0);
+    });
+
+    it('throws and records what was spent when claude returns an error result', function () {
         fakeClaudeProcess(claudeFixture('budget-exceeded.json'), exitCode: 1);
 
-        app(ClaudeCli::class)->ask(new ClaudeRequest('Hello'));
-    })->throws(ClaudeException::class, 'Claude returned an error: Reached maximum budget ($0.00001)');
+        expect(fn () => app(ClaudeCli::class)->ask(new ClaudeRequest('Hello')))
+            ->toThrow(ClaudeException::class, 'Claude returned an error: Reached maximum budget ($0.00001)');
+
+        expect(ClaudeRun::sole())
+            ->status->toBe(ClaudeRunStatus::Failed)
+            ->error->toBe('Claude returned an error: Reached maximum budget ($0.00001)')
+            ->cost_usd->toBe(0.0009);
+    });
+
+    it('throws and records a failed run when claude does not finish in time', function () {
+        config(['claude.timeout' => 120]);
+        Process::preventStrayProcesses();
+        Process::fake(['*' => fn () => throw new ProcessTimedOutException(
+            new SymfonyTimeoutException(new SymfonyProcess(['claude']), SymfonyTimeoutException::TYPE_GENERAL),
+            new FakeProcessResult,
+        )]);
+
+        expect(fn () => app(ClaudeCli::class)->ask(new ClaudeRequest('Hello')))
+            ->toThrow(ClaudeException::class, 'Claude did not finish within 120 seconds.');
+
+        expect(ClaudeRun::sole())
+            ->status->toBe(ClaudeRunStatus::Failed)
+            ->error->toBe('Claude did not finish within 120 seconds.');
+    });
+
+    it('records a succeeded run with the feature, user, model and usage', function () {
+        fakeClaudeProcess(claudeFixture('ask-structured.json'));
+        $user = User::factory()->create();
+
+        $result = app(ClaudeCli::class)->ask(new ClaudeRequest('Name a fruit', feature: 'fruit-picker', user: $user, model: 'haiku'));
+
+        expect($result->run->fresh())
+            ->user_id->toBe($user->id)
+            ->feature->toBe('fruit-picker')
+            ->model->toBe('haiku')
+            ->status->toBe(ClaudeRunStatus::Succeeded)
+            ->session_id->toBe('effd063a-f84b-4d44-be43-a53d44acb7b6')
+            ->cost_usd->toBe(0.000851)
+            ->input_tokens->toBe(4056)
+            ->output_tokens->toBe(80)
+            ->duration_ms->toBe(790)
+            ->error->toBeNull();
+    });
 });
 
 describe('stream', function () {
@@ -189,4 +243,15 @@ describe('stream', function () {
 
         app(ClaudeCli::class)->stream(new ClaudeRequest('Hello'), fn () => null);
     })->throws(ClaudeException::class, 'Claude exited with code 1: Not logged in');
+
+    it('records a failed run when the event handler throws mid-stream', function () {
+        fakeClaudeProcess(claudeFixture('stream-web-search.jsonl'));
+
+        expect(fn () => app(ClaudeCli::class)->stream(new ClaudeRequest('Hello'), fn () => throw new RuntimeException('Browser disconnected')))
+            ->toThrow(RuntimeException::class, 'Browser disconnected');
+
+        expect(ClaudeRun::sole())
+            ->status->toBe(ClaudeRunStatus::Failed)
+            ->error->toBe('Browser disconnected');
+    });
 });

@@ -2,10 +2,14 @@
 
 namespace App\Services\Claude;
 
+use App\Models\ClaudeRun;
+use Closure;
 use Illuminate\Contracts\Process\ProcessResult;
+use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Throwable;
 
 class ClaudeCli
 {
@@ -16,11 +20,13 @@ class ClaudeCli
      */
     public function ask(ClaudeRequest $request): ClaudeResult
     {
-        $process = $this->pendingProcess($request)->run($this->command($request, 'json'));
+        return $this->recorded($request, function () use ($request): array {
+            $process = $this->pendingProcess($request)->run($this->command($request, 'json'));
 
-        $event = json_decode($process->output(), true);
+            $event = json_decode($process->output(), true);
 
-        return $this->resultFrom(is_array($event) ? $event : null, $process);
+            return $this->successfulResultEvent(is_array($event) ? $event : null, $process);
+        });
     }
 
     /**
@@ -32,45 +38,47 @@ class ClaudeCli
      */
     public function stream(ClaudeRequest $request, callable $onEvent): ClaudeResult
     {
-        $buffer = '';
-        $resultEvent = null;
+        return $this->recorded($request, function () use ($request, $onEvent): array {
+            $buffer = '';
+            $resultEvent = null;
 
-        $handleLine = function (string $line) use ($onEvent, &$resultEvent): void {
-            $decoded = json_decode($line, true);
+            $handleLine = function (string $line) use ($onEvent, &$resultEvent): void {
+                $decoded = json_decode($line, true);
 
-            if (! is_array($decoded)) {
-                return;
-            }
-
-            if (($decoded['type'] ?? null) === 'result') {
-                $resultEvent = $decoded;
-
-                return;
-            }
-
-            if ($event = StreamEvent::fromLine($decoded)) {
-                $onEvent($event);
-            }
-        };
-
-        $process = $this->pendingProcess($request)
-            ->start($this->command($request, 'stream-json'), function (string $type, string $output) use (&$buffer, $handleLine): void {
-                if ($type !== 'out') {
+                if (! is_array($decoded)) {
                     return;
                 }
 
-                $buffer .= $output;
+                if (($decoded['type'] ?? null) === 'result') {
+                    $resultEvent = $decoded;
 
-                while (($newline = strpos($buffer, "\n")) !== false) {
-                    $handleLine(substr($buffer, 0, $newline));
-                    $buffer = substr($buffer, $newline + 1);
+                    return;
                 }
-            })
-            ->wait();
 
-        $handleLine($buffer);
+                if ($event = StreamEvent::fromLine($decoded)) {
+                    $onEvent($event);
+                }
+            };
 
-        return $this->resultFrom($resultEvent, $process);
+            $process = $this->pendingProcess($request)
+                ->start($this->command($request, 'stream-json'), function (string $type, string $output) use (&$buffer, $handleLine): void {
+                    if ($type !== 'out') {
+                        return;
+                    }
+
+                    $buffer .= $output;
+
+                    while (($newline = strpos($buffer, "\n")) !== false) {
+                        $handleLine(substr($buffer, 0, $newline));
+                        $buffer = substr($buffer, $newline + 1);
+                    }
+                })
+                ->wait();
+
+            $handleLine($buffer);
+
+            return $this->successfulResultEvent($resultEvent, $process);
+        });
     }
 
     protected function pendingProcess(ClaudeRequest $request): PendingProcess
@@ -127,11 +135,47 @@ class ClaudeCli
     }
 
     /**
-     * @param  array<string, mixed>|null  $event
+     * Log the run before it starts and record how it ended, so every call
+     * shows up in the household's spend, including ones that fail.
+     *
+     * @param  Closure(): array<string, mixed>  $execute  Runs the CLI and returns its successful `result` event.
      *
      * @throws ClaudeException
      */
-    protected function resultFrom(?array $event, ProcessResult $process): ClaudeResult
+    protected function recorded(ClaudeRequest $request, Closure $execute): ClaudeResult
+    {
+        $run = ClaudeRun::create([
+            'user_id' => $request->user?->id,
+            'feature' => $request->feature,
+            'model' => $request->model ?? config('claude.model'),
+            'status' => ClaudeRunStatus::Running,
+        ]);
+
+        try {
+            $result = ClaudeResult::fromEvent($execute(), $run);
+        } catch (ProcessTimedOutException $exception) {
+            $timeout = ClaudeException::timedOut(config('claude.timeout'), $exception);
+            $run->markFailed($timeout->getMessage());
+
+            throw $timeout;
+        } catch (Throwable $exception) {
+            $run->markFailed($exception->getMessage(), $exception instanceof ClaudeException ? $exception->costUsd : 0);
+
+            throw $exception;
+        }
+
+        $run->markSucceeded($result);
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $event
+     * @return array<string, mixed>
+     *
+     * @throws ClaudeException
+     */
+    protected function successfulResultEvent(?array $event, ProcessResult $process): array
     {
         if ($event === null) {
             throw ClaudeException::fromFailedProcess($process);
@@ -141,6 +185,6 @@ class ClaudeCli
             throw ClaudeException::fromErrorEvent($event);
         }
 
-        return ClaudeResult::fromEvent($event);
+        return $event;
     }
 }
