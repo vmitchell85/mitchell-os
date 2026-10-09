@@ -10,7 +10,6 @@ use App\Services\Claude\StreamEvent;
 use App\Services\Claude\StreamEventType;
 use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Process\FakeProcessResult;
-use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Process;
 use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyTimeoutException;
 use Symfony\Component\Process\Process as SymfonyProcess;
@@ -24,40 +23,6 @@ beforeEach(function () {
         'claude.max_budget_usd' => 0.5,
     ]);
 });
-
-/**
- * Fake the claude CLI and return a holder that captures the process it was started with.
- */
-function fakeClaudeProcess(string $output = '', int $exitCode = 0, string $errorOutput = ''): stdClass
-{
-    $captured = new stdClass;
-
-    Process::preventStrayProcesses();
-    Process::fake(['*' => function (PendingProcess $process) use ($captured, $output, $exitCode, $errorOutput) {
-        $captured->process = $process;
-
-        return Process::describe()->output($output)->errorOutput($errorOutput)->exitCode($exitCode);
-    }]);
-
-    return $captured;
-}
-
-/**
- * Get the value that follows a flag in a command, or null when the flag is absent.
- *
- * @param  list<string>  $command
- */
-function claudeOption(array $command, string $flag): ?string
-{
-    $index = array_search($flag, $command, true);
-
-    return $index === false ? null : $command[$index + 1];
-}
-
-function claudeFixture(string $name): string
-{
-    return file_get_contents(base_path("tests/Fixtures/claude/{$name}"));
-}
 
 describe('ask', function () {
     it('returns the answer, structured output, session and usage', function () {

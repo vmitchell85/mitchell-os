@@ -64,3 +64,22 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+/* Claude's replies are rendered from Markdown */
+.chat-markdown {
+    @apply flex flex-col gap-3 leading-relaxed;
+
+    & h1, & h2, & h3, & h4 { @apply mt-2 font-semibold; }
+    & h1 { @apply text-xl; }
+    & h2 { @apply text-lg; }
+    & ul { @apply list-disc ps-6; }
+    & ol { @apply list-decimal ps-6; }
+    & li + li { @apply mt-1; }
+    & a { @apply underline underline-offset-2; }
+    & code { @apply rounded bg-zinc-100 px-1 py-0.5 text-sm dark:bg-zinc-900; }
+    & pre { @apply overflow-x-auto rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-900; }
+    & pre code { @apply bg-transparent p-0; }
+    & blockquote { @apply border-s-4 border-zinc-300 ps-4 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400; }
+    & table { @apply w-full text-sm; }
+    & th, & td { @apply border-b border-zinc-200 px-2 py-1 text-start dark:border-zinc-700; }
+}
