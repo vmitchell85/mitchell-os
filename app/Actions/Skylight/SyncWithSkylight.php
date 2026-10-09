@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Cache;
  */
 class SyncWithSkylight
 {
-    public function __construct(protected SyncShoppingLists $syncShoppingLists) {}
+    public function __construct(
+        protected SyncShoppingLists $syncShoppingLists,
+        protected SyncMeals $syncMeals,
+    ) {}
 
     /**
      * @throws McpException
@@ -20,7 +23,9 @@ class SyncWithSkylight
     public function handle(): SyncReport
     {
         return Cache::lock('skylight-sync', seconds: 300)->block(1, function (): SyncReport {
-            return $this->syncShoppingLists->handle();
+            $report = $this->syncShoppingLists->handle();
+
+            return $this->syncMeals->handle($report);
         });
     }
 }

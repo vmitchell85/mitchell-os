@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 
 #[Signature('skylight:sync')]
-#[Description('Sync shopping lists two ways with the family\'s Skylight frame')]
+#[Description('Sync shopping lists and meals two ways with the family\'s Skylight frame')]
 class SyncSkylight extends Command
 {
     /**
