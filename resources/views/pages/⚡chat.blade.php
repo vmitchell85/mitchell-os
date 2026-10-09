@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\GenerateConversationTitle;
+use App\Mcp\Servers\HouseholdServer;
 use App\Models\Conversation;
 use App\Models\HouseholdSetting;
 use App\Models\Message;
@@ -85,13 +86,14 @@ new #[Title('Chat')] class extends Component {
                 feature: 'chat',
                 user: Auth::user(),
                 systemPrompt: $this->systemPrompt(),
-                tools: ['WebSearch', ...SkylightTools::Read, ...SkylightTools::Add],
+                tools: ['WebSearch', ...SkylightTools::CalendarRead, ...SkylightTools::CalendarAdd, ...HouseholdServer::ClaudeTools],
                 resumeSessionId: $this->conversation->claude_session_id,
                 persistSession: true,
+                environment: [HouseholdServer::UserEnvironmentVariable => (string) Auth::id()],
             ), function (StreamEvent $event): void {
                 match ($event->type) {
                     StreamEventType::TextDelta => $this->stream(e($event->text), to: 'reply'),
-                    StreamEventType::ToolUse => $this->stream(e($this->toolStatus($event->toolName)), replace: true, to: 'status'),
+                    StreamEventType::ToolUse => $this->streamToolUse($event->toolName),
                 };
             });
         } catch (ClaudeException $exception) {
@@ -142,11 +144,22 @@ new #[Title('Chat')] class extends Component {
         return $latest?->role === MessageRole::User ? $latest : null;
     }
 
+    /**
+     * Show what Claude is doing, and break the reply so text written before
+     * the tool call doesn't run into the text written after it.
+     */
+    protected function streamToolUse(?string $toolName): void
+    {
+        $this->stream(e($this->toolStatus($toolName)), replace: true, to: 'status');
+        $this->stream("\n\n", to: 'reply');
+    }
+
     protected function systemPrompt(): string
     {
         return config('claude.system_prompt').' You are chatting with '.Auth::user()->name.'.'
-            .' The family uses a Skylight calendar: you can look up its events, lists, chores and meal plan, and add events, list items and planned meals.'
-            .' You cannot change or delete anything that is already in Skylight, so if asked to, explain that it needs doing in the Skylight app.'
+            .' The household\'s meal plan and shopping lists live in this app: you can look them up, suggest meals (they wait for the family to approve them on the Meals page) and add items to shopping lists.'
+            .' The family\'s Skylight calendar has their events, chores and tasks: you can look those up and add events.'
+            .' You cannot change or delete existing meals, list items or events, so if asked to, explain that it needs doing on the Meals or Shopping page, or in the Skylight app.'
             .(($foodRules = HouseholdSetting::foodRulesPrompt()) ? "\n\n{$foodRules}" : '');
     }
 
@@ -155,8 +168,11 @@ new #[Title('Chat')] class extends Component {
         return match (true) {
             $toolName === 'WebSearch' => __('Searching the web…'),
             $toolName === 'WebFetch' => __('Reading a web page…'),
-            in_array($toolName, SkylightTools::Add, true) => __('Updating Skylight…'),
-            str_starts_with((string) $toolName, 'mcp__skylight__') => __('Checking Skylight…'),
+            in_array($toolName, SkylightTools::CalendarAdd, true) => __('Adding to the calendar…'),
+            str_starts_with((string) $toolName, 'mcp__skylight__') => __('Checking the calendar…'),
+            $toolName === 'mcp__household__suggest-meal' => __('Suggesting a meal…'),
+            $toolName === 'mcp__household__add-shopping-items' => __('Adding to the shopping list…'),
+            str_starts_with((string) $toolName, 'mcp__household__') => __('Checking the meal plan and lists…'),
             default => __('Using :tool…', ['tool' => $toolName]),
         };
     }
@@ -220,7 +236,7 @@ new #[Title('Chat')] class extends Component {
                 @empty
                     <div class="flex flex-col items-center gap-2 py-24 text-center">
                         <flux:heading size="xl">{{ __('What can I help with?') }}</flux:heading>
-                        <flux:text>{{ __('Claude can search the web and check or add to the family\'s Skylight calendar, lists and meal plan.') }}</flux:text>
+                        <flux:text>{{ __('Claude can search the web, check the calendar, meal plan and shopping lists, add to them, and suggest meals.') }}</flux:text>
                     </div>
                 @endforelse
 

@@ -89,7 +89,7 @@ class ClaudeCli
         File::ensureDirectoryExists($workingDirectory);
 
         return Process::path($workingDirectory)
-            ->env([...$this->mcpEnvironment($request), ...AccountEnvironment::current()])
+            ->env([...$this->mcpEnvironment($request), ...$request->environment, ...AccountEnvironment::current()])
             ->timeout(config('claude.timeout'))
             ->input($request->prompt);
     }

@@ -10,36 +10,27 @@ namespace App\Services\Skylight;
 final class SkylightTools
 {
     /**
-     * Look up calendar events, lists, meals and the family.
+     * Look up calendar events, chores, tasks and the family.
      *
      * @var list<string>
      */
-    public const array Read = [
+    public const array CalendarRead = [
         'mcp__skylight__skylight_healthcheck',
         'mcp__skylight__skylight_list_frame_members',
         'mcp__skylight__skylight_resolve_member',
         'mcp__skylight__skylight_list_categories',
         'mcp__skylight__skylight_list_events',
         'mcp__skylight__skylight_get_event',
-        'mcp__skylight__skylight_list_lists',
-        'mcp__skylight__skylight_get_list_items',
         'mcp__skylight__skylight_list_chores',
         'mcp__skylight__skylight_list_tasks',
-        'mcp__skylight__skylight_list_meals',
-        'mcp__skylight__skylight_list_meal_categories',
-        'mcp__skylight__skylight_list_recipes',
-        'mcp__skylight__skylight_get_recipe',
     ];
 
     /**
-     * Add things without being able to change or remove what's already there.
+     * Add calendar events without being able to change or remove existing ones.
      *
      * @var list<string>
      */
-    public const array Add = [
+    public const array CalendarAdd = [
         'mcp__skylight__skylight_create_event',
-        'mcp__skylight__skylight_add_list_item',
-        'mcp__skylight__skylight_plan_meal',
-        'mcp__skylight__skylight_add_recipe_to_grocery_list',
     ];
 }

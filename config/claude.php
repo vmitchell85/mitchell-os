@@ -60,6 +60,12 @@ return [
 
     'mcp_servers' => [
 
+        'household' => [
+            'command' => env('CLAUDE_PHP_BINARY', PHP_BINARY),
+            'args' => [base_path('artisan'), 'mcp:start', 'household'],
+            'env' => [],
+        ],
+
         'skylight' => [
             'command' => env('CLAUDE_NODE_BINARY', 'node'),
             'args' => [base_path('node_modules/skylight-mcp/dist/index.js')],

@@ -56,6 +56,14 @@ class ShoppingList extends Model
     }
 
     /**
+     * The household's main grocery list: Skylight's default, otherwise the first by name.
+     */
+    public static function mainList(): ?self
+    {
+        return static::orderByDesc('is_default')->orderBy('name')->first();
+    }
+
+    /**
      * @return HasMany<ShoppingListItem, $this>
      */
     public function items(): HasMany

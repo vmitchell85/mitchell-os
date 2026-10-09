@@ -13,6 +13,7 @@ final readonly class ClaudeRequest
      *                               tools named mcp__{server}__{tool}, which start that server from config/claude.php.
      * @param  array<string, mixed>|null  $jsonSchema  When set, the result's structured output must match this schema.
      * @param  bool  $persistSession  Save the session so a later request can resume it.
+     * @param  array<string, string>  $environment  Extra environment for the CLI and the MCP servers it starts.
      */
     public function __construct(
         public string $prompt,
@@ -25,6 +26,7 @@ final readonly class ClaudeRequest
         public ?string $resumeSessionId = null,
         public bool $persistSession = false,
         public ?float $maxBudgetUsd = null,
+        public array $environment = [],
     ) {}
 
     /**

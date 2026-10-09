@@ -64,6 +64,16 @@ describe('ask', function () {
         ]);
     });
 
+    it('adds the request\'s environment, without letting it change the OS account', function () {
+        $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
+        $account = posix_getpwuid(posix_geteuid());
+
+        app(ClaudeCli::class)->ask(new ClaudeRequest('Hello', environment: ['HOUSEHOLD_USER_ID' => '7', 'HOME' => '/tmp/elsewhere']));
+
+        expect($captured->process->environment)
+            ->toMatchArray(['HOUSEHOLD_USER_ID' => '7', 'HOME' => $account['dir']]);
+    });
+
     it('locks down settings, MCP servers, tools and session persistence by default', function () {
         $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
 

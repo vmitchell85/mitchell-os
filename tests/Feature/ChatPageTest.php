@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\GenerateConversationTitle;
+use App\Mcp\Servers\HouseholdServer;
 use App\Models\ClaudeRun;
 use App\Models\Conversation;
 use App\Models\HouseholdSetting;
@@ -120,7 +121,7 @@ it('resumes the conversation\'s claude session with web search and keeps its tit
     Queue::assertNotPushed(GenerateConversationTitle::class);
 });
 
-it('lets chat read and add to skylight but not change or delete anything', function () {
+it('gives chat the household tools as the person chatting, and only read and add access to the calendar', function () {
     Queue::fake([GenerateConversationTitle::class]);
     $captured = fakeClaudeProcess(claudeFixture('stream-web-search.jsonl'));
     $conversation = Conversation::factory()->create();
@@ -132,8 +133,10 @@ it('lets chat read and add to skylight but not change or delete anything', funct
 
     $allowedTools = explode(',', claudeOption($captured->process->command, '--allowedTools'));
     expect($allowedTools)
-        ->toContain('mcp__skylight__skylight_list_events', 'mcp__skylight__skylight_create_event', 'mcp__skylight__skylight_add_list_item')
-        ->and(preg_grep('/^mcp__skylight__skylight_(delete|update|clear|remove|invite|approve|rename|set)_/', $allowedTools))->toBeEmpty();
+        ->toContain('mcp__skylight__skylight_list_events', 'mcp__skylight__skylight_create_event', ...HouseholdServer::ClaudeTools)
+        ->and(preg_grep('/^mcp__skylight__skylight_(delete|update|clear|remove|invite|approve|rename|set)_/', $allowedTools))->toBeEmpty()
+        ->and(preg_grep('/^mcp__skylight__skylight_.*(list_item|meal|recipe)/', $allowedTools))->toBeEmpty();
+    expect($captured->process->environment['HOUSEHOLD_USER_ID'])->toBe((string) $conversation->user_id);
 });
 
 it('tells claude the household food rules', function () {
