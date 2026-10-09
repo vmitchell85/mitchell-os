@@ -28,4 +28,22 @@ class SyncWithSkylight
             return $this->syncMeals->handle($report);
         });
     }
+
+    /**
+     * Sync, turning failures into an outcome to show rather than an exception.
+     */
+    public function attempt(): SyncOutcome
+    {
+        try {
+            $report = $this->handle();
+        } catch (LockTimeoutException) {
+            return new SyncOutcome(false, 'warning', null, __('A sync is already running. Try again in a moment.'));
+        } catch (McpException $exception) {
+            report($exception);
+
+            return new SyncOutcome(false, 'danger', __('Sync failed'), $exception->getMessage());
+        }
+
+        return new SyncOutcome(true, 'success', __('Synced with Skylight'), $report->summary());
+    }
 }

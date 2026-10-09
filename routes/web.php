@@ -10,6 +10,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('chat/{conversation?}', 'pages::chat')->name('chat');
 
     Route::livewire('lists/{shoppingList?}', 'pages::lists')->name('lists');
+
+    Route::livewire('meals', 'pages::meals')->name('meals');
 });
 
 require __DIR__.'/settings.php';

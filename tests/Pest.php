@@ -92,3 +92,21 @@ function skylightFixture(string $name): array
 {
     return json_decode(file_get_contents(base_path("tests/Fixtures/skylight/{$name}.json")), true);
 }
+
+/**
+ * A successful `claude -p --output-format json` result carrying structured output.
+ *
+ * @param  array<string, mixed>  $structuredOutput
+ */
+function claudeStructuredResult(array $structuredOutput): string
+{
+    return json_encode([
+        'type' => 'result',
+        'subtype' => 'success',
+        'is_error' => false,
+        'session_id' => 'f1c1a0de-7d5b-4a39-9a43-2e8a4c6f0b11',
+        'total_cost_usd' => 0.0123,
+        'result' => json_encode($structuredOutput),
+        'structured_output' => $structuredOutput,
+    ]);
+}

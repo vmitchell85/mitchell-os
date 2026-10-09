@@ -3,9 +3,7 @@
 use App\Actions\Skylight\SyncWithSkylight;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
-use App\Services\Mcp\McpException;
 use Flux\Flux;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -137,23 +135,14 @@ new #[Title('Shopping lists')] class extends Component {
 
     public function sync(SyncWithSkylight $sync): void
     {
-        try {
-            $report = $sync->handle();
-        } catch (LockTimeoutException) {
-            Flux::toast(variant: 'warning', text: __('A sync is already running. Try again in a moment.'));
+        $outcome = $sync->attempt();
 
-            return;
-        } catch (McpException $exception) {
-            report($exception);
-            Flux::toast(variant: 'danger', heading: __('Sync failed'), text: $exception->getMessage());
-
-            return;
+        if ($outcome->succeeded) {
+            $this->list ??= ShoppingList::orderByDesc('is_default')->orderBy('name')->first();
+            $this->list?->refresh();
         }
 
-        $this->list ??= ShoppingList::orderByDesc('is_default')->orderBy('name')->first();
-        $this->list?->refresh();
-
-        Flux::toast(variant: 'success', heading: __('Synced with Skylight'), text: $report->summary());
+        Flux::toast(variant: $outcome->variant, heading: $outcome->heading, text: $outcome->message);
     }
 
     /**

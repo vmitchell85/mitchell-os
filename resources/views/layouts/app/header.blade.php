@@ -18,6 +18,10 @@
                     {{ __('Chat') }}
                 </flux:navbar.item>
 
+                <flux:navbar.item icon="cake" :href="route('meals')" :current="request()->routeIs('meals')" wire:navigate>
+                    {{ __('Meals') }}
+                </flux:navbar.item>
+
                 <flux:navbar.item icon="shopping-cart" :href="route('lists')" :current="request()->routeIs('lists')" wire:navigate>
                     {{ __('Shopping') }}
                 </flux:navbar.item>
@@ -67,6 +71,10 @@
 
                     <flux:sidebar.item icon="chat-bubble-left-right" :href="route('chat')" :current="request()->routeIs('chat')" wire:navigate>
                         {{ __('Chat') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="cake" :href="route('meals')" :current="request()->routeIs('meals')" wire:navigate>
+                        {{ __('Meals') }}
                     </flux:sidebar.item>
 
                     <flux:sidebar.item icon="shopping-cart" :href="route('lists')" :current="request()->routeIs('lists')" wire:navigate>
