@@ -72,7 +72,7 @@ new #[Title('API tokens')] class extends Component {
                     <div class="min-w-0">
                         <flux:text class="truncate font-medium text-zinc-900 dark:text-white">{{ $token->name }}</flux:text>
                         <flux:text size="sm">
-                            {{ __('Created :date', ['date' => $token->created_at?->toFormattedDayDateString()]) }}
+                            {{ __('Created :date', ['date' => $token->created_at?->timezone(config('app.display_timezone'))->toFormattedDayDateString()]) }}
                             ·
                             {{ $token->last_used_at ? __('Last used :time', ['time' => $token->last_used_at->diffForHumans()]) : __('Never used') }}
                         </flux:text>

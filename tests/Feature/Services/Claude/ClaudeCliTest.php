@@ -111,15 +111,15 @@ describe('ask', function () {
         expect(claudeOption($command, '--system-prompt'))->toStartWith('You are a greengrocer.');
     });
 
-    it('tells claude the current date and time in the app\'s timezone', function () {
-        config(['app.timezone' => 'Europe/London']);
-        $this->travelTo('2026-10-09 18:30:00 UTC');
+    it('tells claude the current date and time in the household\'s timezone', function () {
+        config(['app.display_timezone' => 'America/New_York']);
+        $this->travelTo('2026-10-10 01:30:00 UTC');
         $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
 
         app(ClaudeCli::class)->ask(new ClaudeRequest('What is on tomorrow?'));
 
         expect(claudeOption($captured->process->command, '--system-prompt'))
-            ->toBe("You help the household.\n\nIt is currently Friday 9 October 2026, 19:30 (Europe/London).");
+            ->toBe("You help the household.\n\nIt is currently Friday 9 October 2026, 21:30 (America/New_York).");
     });
 
     it('starts only the MCP servers whose tools are allowed and passes their secrets through the environment', function () {

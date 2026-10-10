@@ -48,3 +48,13 @@ it('explains how to install the helper when it is missing', function () {
 
     app(MacCalendar::class)->calendars();
 })->throws(CalendarException::class, 'php artisan calendar:install');
+
+it('shows event times in the household\'s timezone', function () {
+    fakeCalendarHelper(events: [
+        ['calendar_id' => 'A1', 'title' => 'Call', 'all_day' => false, 'start' => '2026-10-13T22:00:00+00:00', 'end' => '2026-10-13T23:00:00+00:00', 'location' => null],
+    ]);
+
+    $events = app(MacCalendar::class)->events(CarbonImmutable::parse('2026-10-12'), CarbonImmutable::parse('2026-10-18'), ['A1']);
+
+    expect($events[0]->when())->toBe('Tue 13 Oct 18:00–19:00');
+});

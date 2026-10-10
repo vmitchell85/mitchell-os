@@ -82,7 +82,8 @@ class MealPlanPrompt
         }
 
         try {
-            $events = $calendar->describe($weekStart->startOfDay(), $weekStart->addDays(6)->endOfDay());
+            $monday = CarbonImmutable::parse($weekStart->toDateString(), config('app.display_timezone'));
+            $events = $calendar->describe($monday, $monday->addDays(6)->endOfDay());
         } catch (CalendarException $exception) {
             report($exception);
 

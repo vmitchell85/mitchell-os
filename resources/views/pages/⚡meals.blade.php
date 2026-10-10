@@ -75,9 +75,9 @@ new #[Title('Meals')] class extends Component {
     public function mount(): void
     {
         try {
-            $this->week = CarbonImmutable::parse($this->week ?: 'today')->startOfWeek()->toDateString();
+            $this->week = CarbonImmutable::parse($this->week ?: 'today', config('app.display_timezone'))->startOfWeek()->toDateString();
         } catch (Exception) {
-            $this->week = CarbonImmutable::today()->startOfWeek()->toDateString();
+            $this->week = CarbonImmutable::today(config('app.display_timezone'))->startOfWeek()->toDateString();
         }
 
         $this->foodRules = HouseholdSetting::get(HouseholdSetting::FoodRules) ?? '';
@@ -95,7 +95,7 @@ new #[Title('Meals')] class extends Component {
 
     public function thisWeek(): void
     {
-        $this->week = CarbonImmutable::today()->startOfWeek()->toDateString();
+        $this->week = CarbonImmutable::today(config('app.display_timezone'))->startOfWeek()->toDateString();
     }
 
     public function sync(SyncWithSkylight $sync): void
@@ -395,7 +395,7 @@ new #[Title('Meals')] class extends Component {
 
     <div class="flex flex-col gap-5">
         @foreach ($this->days as $date => $meals)
-            @php($day = CarbonImmutable::parse($date))
+            @php($day = CarbonImmutable::parse($date, config('app.display_timezone')))
 
             <section wire:key="day-{{ $date }}" class="flex flex-col gap-2">
                 <div class="flex items-center justify-between">

@@ -5,9 +5,8 @@ namespace App\Services\Calendar;
 use Carbon\CarbonImmutable;
 
 /**
- * One occurrence of an event. Times keep the Mac's own UTC offset, so they
- * read as the family's local time; all-day events are whole dates, with
- * end being the last day.
+ * One occurrence of an event, in the household's timezone. All-day events
+ * are whole dates, with end being the last day.
  */
 final readonly class CalendarEvent
 {
@@ -25,14 +24,26 @@ final readonly class CalendarEvent
      */
     public static function fromArray(array $attributes): self
     {
+        $allDay = (bool) $attributes['all_day'];
+
         return new self(
             calendarId: (string) $attributes['calendar_id'],
             title: (string) $attributes['title'],
-            start: CarbonImmutable::parse((string) $attributes['start']),
-            end: CarbonImmutable::parse((string) $attributes['end']),
-            allDay: (bool) $attributes['all_day'],
+            start: self::time((string) $attributes['start'], $allDay),
+            end: self::time((string) $attributes['end'], $allDay),
+            allDay: $allDay,
             location: isset($attributes['location']) && $attributes['location'] !== '' ? (string) $attributes['location'] : null,
         );
+    }
+
+    /**
+     * All-day dates are read as dates in the household's timezone; times are converted to it.
+     */
+    protected static function time(string $value, bool $allDay): CarbonImmutable
+    {
+        $timezone = config('app.display_timezone');
+
+        return $allDay ? CarbonImmutable::parse($value, $timezone) : CarbonImmutable::parse($value)->setTimezone($timezone);
     }
 
     /**

@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Household Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Times are stored in UTC (the timezone above). This is the household's
+    | own timezone, used to show times and to work out "today", "this week"
+    | and "now" for meal plans, calendars and Claude.
+    |
+    */
+
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'America/New_York'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

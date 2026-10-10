@@ -44,6 +44,15 @@ it('moves between weeks', function () {
         ->assertSet('week', '2026-10-05');
 });
 
+it('works out this week and today in eastern time, not utc', function () {
+    $this->travelTo('2026-10-12 02:00:00 UTC');
+
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::meals')
+        ->assertSet('week', '2026-10-05')
+        ->assertSeeInOrder(['Sunday 11 October', 'Today']);
+});
+
 it('falls back to this week when the week in the url is not a date', function () {
     Livewire::withQueryParams(['week' => 'not-a-date'])
         ->actingAs(User::factory()->create())

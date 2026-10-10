@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class MealController extends Controller
 {
     /**
-     * Meals between two dates, this week by default, including drafts.
+     * Meals between two dates, this week (in the household's timezone) by default, including drafts.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -26,7 +26,7 @@ class MealController extends Controller
             'to' => ['sometimes', 'date', 'after_or_equal:from'],
         ]);
 
-        $from = CarbonImmutable::parse($validated['from'] ?? CarbonImmutable::today()->startOfWeek());
+        $from = CarbonImmutable::parse($validated['from'] ?? CarbonImmutable::today(config('app.display_timezone'))->startOfWeek());
         $to = CarbonImmutable::parse($validated['to'] ?? $from->addDays(6));
 
         abort_if($from->diffInDays($to) > 92, 422, 'Ask for at most 92 days of meals at a time.');

@@ -32,8 +32,8 @@ class ListCalendarEventsTool extends Tool
             'to.after_or_equal' => 'The "to" date must be on or after the "from" date.',
         ]);
 
-        $from = CarbonImmutable::parse($validated['from'])->startOfDay();
-        $to = CarbonImmutable::parse($validated['to'])->endOfDay();
+        $from = CarbonImmutable::parse($validated['from'], config('app.display_timezone'))->startOfDay();
+        $to = CarbonImmutable::parse($validated['to'], config('app.display_timezone'))->endOfDay();
 
         if ($from->diffInDays($to) > 62) {
             return Response::error('Ask for at most two months of events at a time.');

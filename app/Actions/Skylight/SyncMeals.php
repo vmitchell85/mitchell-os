@@ -41,8 +41,9 @@ class SyncMeals
     public function handle(?SyncReport $report = null): SyncReport
     {
         $report ??= new SyncReport;
-        $from = CarbonImmutable::today()->subDays(self::DaysBack);
-        $to = CarbonImmutable::today()->addDays(self::DaysAhead);
+        $today = CarbonImmutable::today(config('app.display_timezone'));
+        $from = $today->subDays(self::DaysBack);
+        $to = $today->addDays(self::DaysAhead);
 
         foreach ($this->skylight->mealCategories() as $category) {
             $this->categoryIds[strtolower($category->label)] = $category->id;
