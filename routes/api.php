@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\ConversationMessageController;
 use App\Http\Controllers\Api\V1\ConversationReplyController;
 use App\Http\Controllers\Api\V1\FoodRulesController;
+use App\Http\Controllers\Api\V1\HouseholdNoteController;
 use App\Http\Controllers\Api\V1\MealApprovalController;
 use App\Http\Controllers\Api\V1\MealController;
 use App\Http\Controllers\Api\V1\MealPlanController;
@@ -30,6 +31,8 @@ Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum', 'verified'])->
     Route::post('meals/{meal}/approve', MealApprovalController::class)->name('meals.approve');
     Route::post('meals/{meal}/regenerate', MealRegenerationController::class)->name('meals.regenerate');
     Route::post('meal-plans', [MealPlanController::class, 'store'])->name('meal-plans.store');
+
+    Route::apiResource('notes', HouseholdNoteController::class)->except(['show']);
 
     Route::get('food-rules', [FoodRulesController::class, 'show'])->name('food-rules.show');
     Route::put('food-rules', [FoodRulesController::class, 'update'])->name('food-rules.update');

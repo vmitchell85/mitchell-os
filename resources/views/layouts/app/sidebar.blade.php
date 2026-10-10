@@ -27,6 +27,10 @@
                     <flux:sidebar.item icon="shopping-cart" :href="route('lists')" :current="request()->routeIs('lists')" wire:navigate>
                         {{ __('Shopping') }}
                     </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="home" :href="route('household')" :current="request()->routeIs('household')" wire:navigate>
+                        {{ __('Household') }}
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Meals;
 
+use App\Models\HouseholdNote;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\ShoppingList;
@@ -48,6 +49,7 @@ class BuildShoppingList
         $result = $this->claude->ask(new ClaudeRequest(
             prompt: implode("\n\n", array_filter([
                 HouseholdSetting::foodRulesPrompt(),
+                HouseholdNote::prompt(),
                 "Meals to shop for:\n".$mealLines->implode("\n"),
                 $onList->isNotEmpty() ? "Already on the list:\n".$onList->map(fn ($item): string => "- {$item->name}")->implode("\n") : 'The list is empty.',
                 $sections->isNotEmpty() ? "The list's sections: ".$sections->implode(', ') : null,

@@ -6,7 +6,9 @@ use App\Mcp\Tools\GetShoppingListTool;
 use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
 use App\Mcp\Tools\ListShoppingListsTool;
+use App\Mcp\Tools\RememberNoteTool;
 use App\Mcp\Tools\SuggestMealTool;
+use App\Models\HouseholdNote;
 use App\Models\Meal;
 use App\Models\SharedCalendar;
 use App\Models\ShoppingList;
@@ -24,6 +26,7 @@ it('names its tools the way chat allows them', function (string $tool, string $c
     [GetShoppingListTool::class, 'mcp__household__get-shopping-list'],
     [AddShoppingItemsTool::class, 'mcp__household__add-shopping-items'],
     [ListCalendarEventsTool::class, 'mcp__household__list-calendar-events'],
+    [RememberNoteTool::class, 'mcp__household__remember-note'],
 ]);
 
 it('lists meals in a date range, marking suggestions awaiting approval', function () {
@@ -145,4 +148,14 @@ it('says why the calendars could not be read', function () {
 
     HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18'])
         ->assertHasErrors(['The family\'s calendars couldn\'t be read: Calendar access is turned off.']);
+});
+
+it('saves a note as the household member chatting', function () {
+    $user = User::factory()->create();
+
+    HouseholdServer::actingAs($user)->tool(RememberNoteTool::class, ['note' => ' Lucy is allergic to peanuts. '])
+        ->assertOk()
+        ->assertSee('Saved the note "Lucy is allergic to peanuts."');
+
+    expect(HouseholdNote::sole())->body->toBe('Lucy is allergic to peanuts.')->added_by->toBe($user->id);
 });

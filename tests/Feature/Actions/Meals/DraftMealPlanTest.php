@@ -2,6 +2,7 @@
 
 use App\Actions\Meals\DraftMealPlan;
 use App\Models\ClaudeRun;
+use App\Models\HouseholdNote;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\SharedCalendar;
@@ -117,4 +118,13 @@ it('plans without the calendar when it cannot be read', function () {
 
     expect($captured->process->input)->not->toContain("family's calendar");
     Exceptions::assertReported(CalendarException::class);
+});
+
+it('gives claude the household notes', function () {
+    HouseholdNote::factory()->create(['body' => 'We have soccer practice on Tuesdays.']);
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
+
+    app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
+
+    expect($captured->process->input)->toContain("About the household (keep these in mind):\n- We have soccer practice on Tuesdays.");
 });

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Meals;
 
+use App\Models\HouseholdNote;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Services\Calendar\CalendarException;
@@ -46,7 +47,7 @@ class MealPlanPrompt
     }
 
     /**
-     * The household's food rules, what's on their calendars, what's already
+     * The household's food rules and notes, what's on their calendars, what's already
      * planned this week and what was eaten recently.
      */
     public static function context(CarbonImmutable $weekStart, ?Meal $except = null): string
@@ -63,6 +64,7 @@ class MealPlanPrompt
 
         return implode("\n\n", array_filter([
             HouseholdSetting::foodRulesPrompt(),
+            HouseholdNote::prompt(),
             self::calendar($weekStart),
             $thisWeek->isNotEmpty() ? "Already planned this week:\n".$thisWeek->implode("\n") : null,
             $recent->isNotEmpty() ? "Eaten in the last four weeks:\n".$recent->map(fn (string $name): string => "- {$name}")->implode("\n") : null,

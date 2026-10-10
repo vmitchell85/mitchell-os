@@ -12,6 +12,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('lists/{shoppingList?}', 'pages::lists')->name('lists');
 
     Route::livewire('meals', 'pages::meals')->name('meals');
+
+    Route::livewire('household', 'pages::household')->name('household');
 });
 
 require __DIR__.'/settings.php';

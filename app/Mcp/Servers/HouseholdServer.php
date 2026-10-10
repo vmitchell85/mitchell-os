@@ -7,6 +7,7 @@ use App\Mcp\Tools\GetShoppingListTool;
 use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
 use App\Mcp\Tools\ListShoppingListsTool;
+use App\Mcp\Tools\RememberNoteTool;
 use App\Mcp\Tools\SuggestMealTool;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,7 @@ class HouseholdServer extends Server
         'mcp__household__get-shopping-list',
         'mcp__household__add-shopping-items',
         'mcp__household__list-calendar-events',
+        'mcp__household__remember-note',
     ];
 
     protected array $tools = [
@@ -48,6 +50,7 @@ class HouseholdServer extends Server
         GetShoppingListTool::class,
         AddShoppingItemsTool::class,
         ListCalendarEventsTool::class,
+        RememberNoteTool::class,
     ];
 
     protected array $resources = [
