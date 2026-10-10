@@ -8,7 +8,7 @@ use App\Models\Meal;
 use App\Models\Recipe;
 use App\Models\SharedCalendar;
 use App\Models\User;
-use App\Services\Calendar\CalendarException;
+use App\Services\MacHelper\MacHelperException;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Process;
@@ -97,7 +97,7 @@ it('gives claude the household food rules', function () {
 
 it('tells claude what is on the shared calendars that week', function () {
     SharedCalendar::factory()->create(['calendar_id' => 'KIDS-1', 'label' => 'Kids']);
-    $helper = fakeCalendarHelper(events: [
+    $helper = fakeMacHelper(events: [
         ['calendar_id' => 'KIDS-1', 'title' => 'Football practice', 'all_day' => false, 'start' => '2026-10-13T17:30:00-04:00', 'end' => '2026-10-13T19:00:00-04:00', 'location' => null],
     ]);
     $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
@@ -112,13 +112,13 @@ it('tells claude what is on the shared calendars that week', function () {
 it('plans without the calendar when it cannot be read', function () {
     Exceptions::fake();
     SharedCalendar::factory()->create();
-    fakeCalendarHelper(error: 'Calendar access is turned off.');
+    fakeMacHelper(error: 'Calendar access is turned off.');
     $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
 
     app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
 
     expect($captured->process->input)->not->toContain("family's calendar");
-    Exceptions::assertReported(CalendarException::class);
+    Exceptions::assertReported(MacHelperException::class);
 });
 
 it('gives claude the household notes', function () {

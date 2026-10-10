@@ -129,7 +129,7 @@ it('adds items to a list, skipping ones already on it, attributed to the househo
 
 it('lists events from the shared calendars, saying whose each is', function () {
     SharedCalendar::factory()->create(['calendar_id' => 'WORK-1', 'title' => 'Work', 'label' => 'Vince – Work']);
-    $captured = fakeCalendarHelper(events: [
+    $captured = fakeMacHelper(events: [
         ['calendar_id' => 'WORK-1', 'title' => 'Late meeting', 'all_day' => false, 'start' => '2026-10-13T18:00:00-04:00', 'end' => '2026-10-13T19:30:00-04:00', 'location' => 'Office'],
     ]);
 
@@ -142,7 +142,7 @@ it('lists events from the shared calendars, saying whose each is', function () {
 });
 
 it('explains when no calendars are shared', function () {
-    $captured = fakeCalendarHelper();
+    $captured = fakeMacHelper();
 
     HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18'])
         ->assertHasErrors(['The family hasn\'t shared any calendars yet. They can choose some in Settings > Calendars.']);
@@ -151,7 +151,7 @@ it('explains when no calendars are shared', function () {
 
 it('says why the calendars could not be read', function () {
     SharedCalendar::factory()->create();
-    fakeCalendarHelper(error: 'Calendar access is turned off.');
+    fakeMacHelper(error: 'Calendar access is turned off.');
 
     HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18'])
         ->assertHasErrors(['The family\'s calendars couldn\'t be read: Calendar access is turned off.']);

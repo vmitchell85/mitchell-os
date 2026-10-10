@@ -3,6 +3,7 @@
 namespace App\Services\Calendar;
 
 use App\Models\SharedCalendar;
+use App\Services\MacHelper\MacHelperException;
 use Carbon\CarbonImmutable;
 
 /**
@@ -20,7 +21,7 @@ class HouseholdCalendar
     /**
      * @return list<array{calendar: string, title: string, when: string, all_day: bool, start: string, end: string, location: string|null}>
      *
-     * @throws CalendarException
+     * @throws MacHelperException
      */
     public function events(CarbonImmutable $from, CarbonImmutable $to): array
     {
@@ -46,7 +47,7 @@ class HouseholdCalendar
     /**
      * The household's events in a period, one per line, for a prompt.
      *
-     * @throws CalendarException
+     * @throws MacHelperException
      */
     public function describe(CarbonImmutable $from, CarbonImmutable $to): ?string
     {

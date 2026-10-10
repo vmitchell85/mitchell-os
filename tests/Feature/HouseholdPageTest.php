@@ -58,3 +58,24 @@ it('saves the food rules', function () {
 
     expect(HouseholdSetting::get(HouseholdSetting::FoodRules))->toBe('No seafood.');
 });
+
+it('saves the weather zip code and home address', function () {
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::household')
+        ->assertSet('weatherZip', '43081')
+        ->set('weatherZip', '43215')
+        ->set('homeAddress', ' 1 Main St, Columbus, OH ')
+        ->call('saveHome')
+        ->assertHasNoErrors();
+
+    expect(HouseholdSetting::weatherZip())->toBe('43215')
+        ->and(HouseholdSetting::homeAddress())->toBe('1 Main St, Columbus, OH');
+});
+
+it('requires a five digit zip code', function () {
+    Livewire::actingAs(User::factory()->create())
+        ->test('pages::household')
+        ->set('weatherZip', '4308')
+        ->call('saveHome')
+        ->assertHasErrors(['weatherZip' => 'regex']);
+});

@@ -5,7 +5,7 @@ use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    fakeCalendarHelper(calendars: [
+    fakeMacHelper(calendars: [
         ['id' => 'WORK-1', 'title' => 'Work', 'account' => 'vince@example.com', 'color' => '#4285F4'],
         ['id' => 'HOME-1', 'title' => 'Home', 'account' => 'iCloud', 'color' => null],
     ]);
@@ -53,7 +53,7 @@ it('keeps a shared calendar this mac no longer has, so it can be unshared', func
 });
 
 it('explains why the calendars cannot be read', function () {
-    fakeCalendarHelper(error: 'Calendar access is turned off.');
+    fakeMacHelper(error: 'Calendar access is turned off.');
 
     Livewire::actingAs(User::factory()->create())
         ->test('pages::settings.calendars')

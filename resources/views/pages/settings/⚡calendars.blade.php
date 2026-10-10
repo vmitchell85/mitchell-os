@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\SharedCalendar;
-use App\Services\Calendar\CalendarException;
+use App\Services\MacHelper\MacHelperException;
 use App\Services\Calendar\MacCalendar;
 use App\Services\Calendar\MacCalendarInfo;
 use Livewire\Attributes\Computed;
@@ -37,7 +37,7 @@ new #[Title('Calendars')] class extends Component {
                 'account' => $info->account,
                 'color' => $info->color,
             ], $macCalendar->calendars());
-        } catch (CalendarException $exception) {
+        } catch (MacHelperException $exception) {
             $this->error = $exception->getMessage();
         }
 

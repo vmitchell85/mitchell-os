@@ -13,6 +13,10 @@ use Livewire\Component;
 new #[Title('Household')] class extends Component {
     public string $foodRules = '';
 
+    public string $weatherZip = '';
+
+    public string $homeAddress = '';
+
     public string $note = '';
 
     #[Locked]
@@ -23,6 +27,21 @@ new #[Title('Household')] class extends Component {
     public function mount(): void
     {
         $this->foodRules = HouseholdSetting::get(HouseholdSetting::FoodRules) ?? '';
+        $this->weatherZip = HouseholdSetting::weatherZip();
+        $this->homeAddress = HouseholdSetting::homeAddress() ?? '';
+    }
+
+    public function saveHome(): void
+    {
+        $validated = $this->validate([
+            'weatherZip' => ['required', 'string', 'regex:/^\d{5}$/'],
+            'homeAddress' => ['nullable', 'string', 'max:255'],
+        ], attributes: ['weatherZip' => __('zip code'), 'homeAddress' => __('home address')]);
+
+        HouseholdSetting::put(HouseholdSetting::WeatherZip, $validated['weatherZip']);
+        HouseholdSetting::put(HouseholdSetting::HomeAddress, trim($validated['homeAddress'] ?? '') ?: null);
+
+        Flux::toast(variant: 'success', text: __('Home details saved.'));
     }
 
     public function saveFoodRules(): void
@@ -147,6 +166,23 @@ new #[Title('Household')] class extends Component {
 
             <div>
                 <flux:button type="submit" variant="primary">{{ __('Save food rules') }}</flux:button>
+            </div>
+        </form>
+    </section>
+
+    <section class="flex flex-col gap-4">
+        <div>
+            <flux:heading size="xl">{{ __('Home') }}</flux:heading>
+            <flux:text class="mt-1">{{ __('The dashboard shows the weather for your zip code and how long it takes to drive from home to today\'s events.') }}</flux:text>
+        </div>
+
+        <form wire:submit="saveHome" class="flex flex-col gap-3">
+            <flux:input wire:model="weatherZip" :label="__('Zip code')" inputmode="numeric" maxlength="5" />
+
+            <flux:input wire:model="homeAddress" :label="__('Home address')" :placeholder="__('e.g. 123 Main St, Westerville, OH 43081')" />
+
+            <div>
+                <flux:button type="submit" variant="primary">{{ __('Save home details') }}</flux:button>
             </div>
         </form>
     </section>

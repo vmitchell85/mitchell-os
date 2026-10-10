@@ -1,0 +1,142 @@
+{
+    "generated_at": "2026-10-09T19:00:00+00:00",
+    "weather": {
+        "location": "Westerville, OH 43081",
+        "temperature_f": 64,
+        "conditions": "Light Rain",
+        "icon": "rain",
+        "high_f": 72,
+        "low_f": 51,
+        "precip_chance": 40,
+        "hourly": [
+            {
+                "time": "2026-10-09T20:00:00+00:00",
+                "temperature_f": 61,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            },
+            {
+                "time": "2026-10-09T21:00:00+00:00",
+                "temperature_f": 62,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            },
+            {
+                "time": "2026-10-09T22:00:00+00:00",
+                "temperature_f": 63,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            },
+            {
+                "time": "2026-10-09T23:00:00+00:00",
+                "temperature_f": 64,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            },
+            {
+                "time": "2026-10-10T00:00:00+00:00",
+                "temperature_f": 65,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            },
+            {
+                "time": "2026-10-10T01:00:00+00:00",
+                "temperature_f": 66,
+                "conditions": "Mostly Sunny",
+                "icon": "partly-cloudy",
+                "precip_chance": 10
+            }
+        ],
+        "alerts": [
+            {
+                "headline": "Frost Advisory issued for Franklin County",
+                "severity": "Minor"
+            }
+        ]
+    },
+    "weather_error": null,
+    "schedule": [
+        {
+            "date": "2026-10-09",
+            "label": "Today",
+            "events": [
+                {
+                    "title": "Picture day",
+                    "calendar": "Family",
+                    "when": "Fri, Oct 9 (all day)",
+                    "all_day": true,
+                    "start": "2026-10-09",
+                    "end": "2026-10-09",
+                    "location": null,
+                    "drive": null
+                },
+                {
+                    "title": "Soccer practice",
+                    "calendar": "Family",
+                    "when": "Fri, Oct 9, 5:00 PM\u20136:30 PM",
+                    "all_day": false,
+                    "start": "2026-10-09T21:00:00+00:00",
+                    "end": "2026-10-09T22:30:00+00:00",
+                    "location": "Alum Creek Park, Lewis Center, OH",
+                    "drive": {
+                        "minutes": 22,
+                        "miles": 11.4,
+                        "leave_by": "2026-10-09T20:38:00+00:00",
+                        "traffic_aware": true,
+                        "maps_url": "https://maps.apple.com/?saddr=1%20Main%20St%2C%20Westerville%2C%20OH&daddr=Alum%20Creek%20Park%2C%20Lewis%20Center%2C%20OH&dirflg=d"
+                    }
+                }
+            ]
+        },
+        {
+            "date": "2026-10-10",
+            "label": "Tomorrow",
+            "events": [
+                {
+                    "title": "Fall trip",
+                    "calendar": "Family",
+                    "when": "Sat, Oct 10 \u2013 Sun, Oct 11 (all day)",
+                    "all_day": true,
+                    "start": "2026-10-10",
+                    "end": "2026-10-11",
+                    "location": null,
+                    "drive": null
+                },
+                {
+                    "title": "Dentist",
+                    "calendar": "Family",
+                    "when": "Sat, Oct 10, 9:00 AM\u201310:00 AM",
+                    "all_day": false,
+                    "start": "2026-10-10T13:00:00+00:00",
+                    "end": "2026-10-10T14:00:00+00:00",
+                    "location": null,
+                    "drive": null
+                }
+            ]
+        },
+        {
+            "date": "2026-10-11",
+            "label": "Sunday, October 11",
+            "events": [
+                {
+                    "title": "Fall trip",
+                    "calendar": "Family",
+                    "when": "Sat, Oct 10 \u2013 Sun, Oct 11 (all day)",
+                    "all_day": true,
+                    "start": "2026-10-10",
+                    "end": "2026-10-11",
+                    "location": null,
+                    "drive": null
+                }
+            ]
+        }
+    ],
+    "schedule_error": null,
+    "drive_error": null,
+    "home_address_set": true
+}

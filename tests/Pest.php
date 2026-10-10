@@ -112,25 +112,26 @@ function claudeStructuredResult(array $structuredOutput): string
 }
 
 /**
- * Fake the macOS Calendar helper app: it appears installed and answers with
- * the given calendars and events, or the given error. Call it before
+ * Fake the Mac helper app: it appears installed and answers with the given
+ * calendars, events and drive estimate, or the given error. Call it before
  * fakeClaudeProcess(), whose catch-all fake would otherwise answer first.
  *
  * @param  list<array<string, mixed>>  $calendars
  * @param  list<array<string, mixed>>  $events
+ * @param  array{minutes: int, miles: float, traffic_aware: bool}  $drive
  */
-function fakeCalendarHelper(array $calendars = [], array $events = [], ?string $error = null): stdClass
+function fakeMacHelper(array $calendars = [], array $events = [], ?string $error = null, array $drive = ['minutes' => 22, 'miles' => 11.4, 'traffic_aware' => true]): stdClass
 {
     $captured = new stdClass;
     $captured->runs = [];
 
-    $app = sys_get_temp_dir().'/calendar-helper-'.bin2hex(random_bytes(4)).'/Mitchell OS Calendar.app';
+    $app = sys_get_temp_dir().'/mac-helper-'.bin2hex(random_bytes(4)).'/Mitchell OS Helper.app';
     @mkdir("{$app}/Contents/MacOS", 0777, true);
-    touch("{$app}/Contents/MacOS/calendar-helper");
-    config(['calendar.app_path' => $app]);
+    touch("{$app}/Contents/MacOS/mac-helper");
+    config(['mac_helper.app_path' => $app]);
 
     Process::preventStrayProcesses();
-    Process::fake(["'open' '-W' *" => function (PendingProcess $process) use ($captured, $calendars, $events, $error) {
+    Process::fake(["'open' '-W' *" => function (PendingProcess $process) use ($captured, $calendars, $events, $error, $drive) {
         $command = $process->command;
         $arguments = array_slice($command, array_search('--args', $command, true) + 1);
         $captured->runs[] = $arguments;
@@ -138,7 +139,11 @@ function fakeCalendarHelper(array $calendars = [], array $events = [], ?string $
         if ($error !== null) {
             file_put_contents($command[array_search('--stderr', $command, true) + 1], $error);
         } else {
-            file_put_contents($command[array_search('--stdout', $command, true) + 1], json_encode($arguments[0] === 'calendars' ? $calendars : $events));
+            file_put_contents($command[array_search('--stdout', $command, true) + 1], json_encode(match ($arguments[0]) {
+                'calendars' => $calendars,
+                'drive' => $drive,
+                default => $events,
+            }));
         }
 
         return Process::describe();

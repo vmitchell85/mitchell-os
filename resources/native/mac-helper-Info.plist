@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>calendar-helper</string>
+    <string>mac-helper</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSUIElement</key>
     <true/>
     <key>CFBundleIdentifier</key>
-    <string>os.mitchell.calendar-helper</string>
+    <string>os.mitchell.mac-helper</string>
     <key>CFBundleName</key>
-    <string>Mitchell OS calendar helper</string>
+    <string>Mitchell OS Helper</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Mitchell OS reads your calendars so chat and the meal planner know what the household has on.</string>
 </dict>

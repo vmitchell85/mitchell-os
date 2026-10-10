@@ -2,32 +2,30 @@
 
 namespace App\Services\Calendar;
 
+use App\Services\MacHelper\MacHelper;
+use App\Services\MacHelper\MacHelperException;
 use Carbon\CarbonImmutable;
-use Illuminate\Process\Exceptions\ProcessTimedOutException;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Process;
 
 /**
- * Reads macOS Calendar through the helper app built by calendar:install.
- * The helper is launched with `open` so macOS treats it as its own app and
- * asks for calendar access on its behalf; its output comes back through
- * temporary files because `open` doesn't pass it through.
+ * Reads macOS Calendar through the Mac helper app.
  */
 class MacCalendar
 {
+    public function __construct(protected MacHelper $helper) {}
+
     public function isInstalled(): bool
     {
-        return is_file($this->executable());
+        return $this->helper->isInstalled();
     }
 
     /**
      * @return list<MacCalendarInfo>
      *
-     * @throws CalendarException
+     * @throws MacHelperException
      */
     public function calendars(): array
     {
-        return array_map(MacCalendarInfo::fromArray(...), $this->run(['calendars']));
+        return array_map(MacCalendarInfo::fromArray(...), $this->list(['calendars']));
     }
 
     /**
@@ -36,7 +34,7 @@ class MacCalendar
      * @param  list<string>  $calendarIds
      * @return list<CalendarEvent>
      *
-     * @throws CalendarException
+     * @throws MacHelperException
      */
     public function events(CarbonImmutable $from, CarbonImmutable $to, array $calendarIds): array
     {
@@ -44,59 +42,25 @@ class MacCalendar
             return [];
         }
 
-        return array_map(CalendarEvent::fromArray(...), $this->run([
+        return array_map(CalendarEvent::fromArray(...), $this->list([
             'events', $from->toIso8601String(), $to->toIso8601String(), implode(',', $calendarIds),
         ]));
-    }
-
-    public function executable(): string
-    {
-        return config('calendar.app_path').'/Contents/MacOS/calendar-helper';
     }
 
     /**
      * @param  list<string>  $arguments
      * @return list<array<string, mixed>>
      *
-     * @throws CalendarException
+     * @throws MacHelperException
      */
-    protected function run(array $arguments): array
+    protected function list(array $arguments): array
     {
-        if (! $this->isInstalled()) {
-            throw CalendarException::notInstalled();
+        $decoded = $this->helper->run($arguments);
+
+        if (! array_is_list($decoded)) {
+            throw new MacHelperException('The Mac helper returned something unexpected.');
         }
 
-        $directory = storage_path('app/calendar/runs/'.bin2hex(random_bytes(8)));
-        File::ensureDirectoryExists($directory);
-        $output = "{$directory}/stdout";
-        $errors = "{$directory}/stderr";
-
-        try {
-            $process = Process::timeout((int) config('calendar.timeout'))->run([
-                'open', '-W', '-n', '-g', '--stdout', $output, '--stderr', $errors, config('calendar.app_path'), '--args', ...$arguments,
-            ]);
-        } catch (ProcessTimedOutException) {
-            File::deleteDirectory($directory);
-
-            throw new CalendarException('The calendar helper didn\'t answer in time. If macOS is asking to allow calendar access, click Allow and try again.');
-        }
-
-        try {
-            $error = trim((string) @file_get_contents($errors));
-
-            if ($error !== '' || $process->failed()) {
-                throw new CalendarException($error !== '' ? $error : (trim($process->errorOutput()) ?: 'The calendar helper failed.'));
-            }
-
-            $decoded = json_decode((string) @file_get_contents($output), true);
-
-            if (! is_array($decoded) || ! array_is_list($decoded)) {
-                throw new CalendarException('The calendar helper returned something unexpected.');
-            }
-
-            return array_values(array_filter($decoded, is_array(...)));
-        } finally {
-            File::deleteDirectory($directory);
-        }
+        return array_values(array_filter($decoded, is_array(...)));
     }
 }

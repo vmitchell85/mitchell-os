@@ -2,8 +2,8 @@
 
 namespace App\Mcp\Tools;
 
-use App\Services\Calendar\CalendarException;
 use App\Services\Calendar\HouseholdCalendar;
+use App\Services\MacHelper\MacHelperException;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -45,7 +45,7 @@ class ListCalendarEventsTool extends Tool
 
         try {
             return Response::structured(['events' => $calendar->events($from, $to)]);
-        } catch (CalendarException $exception) {
+        } catch (MacHelperException $exception) {
             report($exception);
 
             return Response::error("The family's calendars couldn't be read: {$exception->getMessage()}");

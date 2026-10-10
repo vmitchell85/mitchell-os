@@ -3,9 +3,9 @@
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Process;
 
-it('builds the helper app, signs it and checks calendar access', function () {
-    $app = sys_get_temp_dir().'/calendar-install-'.bin2hex(random_bytes(4)).'/Mitchell OS Calendar.app';
-    config(['calendar.app_path' => $app]);
+it('builds the Mac helper app, signs it and checks calendar access', function () {
+    $app = sys_get_temp_dir().'/mac-helper-install-'.bin2hex(random_bytes(4)).'/Mitchell OS Helper.app';
+    config(['mac_helper.app_path' => $app]);
     $commands = [];
 
     Process::preventStrayProcesses();
@@ -30,19 +30,19 @@ it('builds the helper app, signs it and checks calendar access', function () {
         },
     ]);
 
-    $this->artisan('calendar:install')
+    $this->artisan('mac-helper:install')
         ->expectsTable(['Account', 'Calendar'], [['vince@example.com', 'Work']])
         ->assertSuccessful();
 
     expect(file_get_contents("{$app}/Contents/Info.plist"))->toContain('NSCalendarsFullAccessUsageDescription');
-    expect(is_file("{$app}/Contents/MacOS/calendar-helper"))->toBeTrue();
-    expect($commands[1])->toBe(['codesign', '--force', '--sign', '-', dirname($app).'/building/Mitchell OS Calendar.app']);
+    expect(is_file("{$app}/Contents/MacOS/mac-helper"))->toBeTrue();
+    expect($commands[1])->toBe(['codesign', '--force', '--sign', '-', dirname($app).'/building/Mitchell OS Helper.app']);
 });
 
 it('reports when calendar access is not allowed', function () {
-    fakeCalendarHelper(error: 'Calendar access was not allowed.');
+    fakeMacHelper(error: 'Calendar access was not allowed.');
 
-    $this->artisan('calendar:install')
+    $this->artisan('mac-helper:install')
         ->expectsOutputToContain('Calendar access was not allowed.')
         ->assertFailed();
 });

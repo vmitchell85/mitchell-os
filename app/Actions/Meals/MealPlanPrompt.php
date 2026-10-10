@@ -6,8 +6,8 @@ use App\Models\HouseholdNote;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
 use App\Models\Recipe;
-use App\Services\Calendar\CalendarException;
 use App\Services\Calendar\HouseholdCalendar;
+use App\Services\MacHelper\MacHelperException;
 use Carbon\CarbonImmutable;
 
 /**
@@ -102,7 +102,7 @@ class MealPlanPrompt
         try {
             $monday = CarbonImmutable::parse($weekStart->toDateString(), config('app.display_timezone'));
             $events = $calendar->describe($monday, $monday->addDays(6)->endOfDay());
-        } catch (CalendarException $exception) {
+        } catch (MacHelperException $exception) {
             report($exception);
 
             return null;

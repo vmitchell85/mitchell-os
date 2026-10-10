@@ -3,8 +3,10 @@
 use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\ConversationMessageController;
 use App\Http\Controllers\Api\V1\ConversationReplyController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\FoodRulesController;
 use App\Http\Controllers\Api\V1\HouseholdNoteController;
+use App\Http\Controllers\Api\V1\HouseholdSettingsController;
 use App\Http\Controllers\Api\V1\MealApprovalController;
 use App\Http\Controllers\Api\V1\MealController;
 use App\Http\Controllers\Api\V1\MealPlanController;
@@ -47,6 +49,11 @@ Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum', 'verified'])->
 
     Route::get('food-rules', [FoodRulesController::class, 'show'])->name('food-rules.show');
     Route::put('food-rules', [FoodRulesController::class, 'update'])->name('food-rules.update');
+
+    Route::get('household-settings', [HouseholdSettingsController::class, 'show'])->name('household-settings.show');
+    Route::put('household-settings', [HouseholdSettingsController::class, 'update'])->name('household-settings.update');
+
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::post('skylight/sync', SkylightSyncController::class)->name('skylight.sync');
 });
