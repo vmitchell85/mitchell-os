@@ -110,3 +110,39 @@ function claudeStructuredResult(array $structuredOutput): string
         'structured_output' => $structuredOutput,
     ]);
 }
+
+/**
+ * Fake the macOS Calendar helper app: it appears installed and answers with
+ * the given calendars and events, or the given error. Call it before
+ * fakeClaudeProcess(), whose catch-all fake would otherwise answer first.
+ *
+ * @param  list<array<string, mixed>>  $calendars
+ * @param  list<array<string, mixed>>  $events
+ */
+function fakeCalendarHelper(array $calendars = [], array $events = [], ?string $error = null): stdClass
+{
+    $captured = new stdClass;
+    $captured->runs = [];
+
+    $app = sys_get_temp_dir().'/calendar-helper-'.bin2hex(random_bytes(4)).'/Mitchell OS Calendar.app';
+    @mkdir("{$app}/Contents/MacOS", 0777, true);
+    touch("{$app}/Contents/MacOS/calendar-helper");
+    config(['calendar.app_path' => $app]);
+
+    Process::preventStrayProcesses();
+    Process::fake(["'open' '-W' *" => function (PendingProcess $process) use ($captured, $calendars, $events, $error) {
+        $command = $process->command;
+        $arguments = array_slice($command, array_search('--args', $command, true) + 1);
+        $captured->runs[] = $arguments;
+
+        if ($error !== null) {
+            file_put_contents($command[array_search('--stderr', $command, true) + 1], $error);
+        } else {
+            file_put_contents($command[array_search('--stdout', $command, true) + 1], json_encode($arguments[0] === 'calendars' ? $calendars : $events));
+        }
+
+        return Process::describe();
+    }]);
+
+    return $captured;
+}

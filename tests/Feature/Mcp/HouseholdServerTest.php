@@ -3,10 +3,12 @@
 use App\Mcp\Servers\HouseholdServer;
 use App\Mcp\Tools\AddShoppingItemsTool;
 use App\Mcp\Tools\GetShoppingListTool;
+use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
 use App\Mcp\Tools\ListShoppingListsTool;
 use App\Mcp\Tools\SuggestMealTool;
 use App\Models\Meal;
+use App\Models\SharedCalendar;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Models\User;
@@ -21,6 +23,7 @@ it('names its tools the way chat allows them', function (string $tool, string $c
     [ListShoppingListsTool::class, 'mcp__household__list-shopping-lists'],
     [GetShoppingListTool::class, 'mcp__household__get-shopping-list'],
     [AddShoppingItemsTool::class, 'mcp__household__add-shopping-items'],
+    [ListCalendarEventsTool::class, 'mcp__household__list-calendar-events'],
 ]);
 
 it('lists meals in a date range, marking suggestions awaiting approval', function () {
@@ -112,4 +115,34 @@ it('adds items to a list, skipping ones already on it, attributed to the househo
     $response->assertStructuredContent(['list' => 'Costco', 'added' => ['Coffee beans'], 'already_on_list' => ['kitchen roll']]);
     $this->assertDatabaseHas('shopping_list_items', ['shopping_list_id' => $costco->id, 'name' => 'Coffee beans', 'section' => 'Drinks', 'added_by' => $user->id]);
     expect($costco->items()->count())->toBe(2);
+});
+
+it('lists events from the shared calendars, saying whose each is', function () {
+    SharedCalendar::factory()->create(['calendar_id' => 'WORK-1', 'title' => 'Work', 'label' => 'Vince – Work']);
+    $captured = fakeCalendarHelper(events: [
+        ['calendar_id' => 'WORK-1', 'title' => 'Late meeting', 'all_day' => false, 'start' => '2026-10-13T18:00:00-04:00', 'end' => '2026-10-13T19:30:00-04:00', 'location' => 'Office'],
+    ]);
+
+    $response = HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18']);
+
+    $response->assertOk()->assertStructuredContent(['events' => [
+        ['calendar' => 'Vince – Work', 'title' => 'Late meeting', 'when' => 'Tue 13 Oct 18:00–19:30', 'all_day' => false, 'start' => '2026-10-13T18:00:00-04:00', 'end' => '2026-10-13T19:30:00-04:00', 'location' => 'Office'],
+    ]]);
+    expect($captured->runs[0][3])->toBe('WORK-1');
+});
+
+it('explains when no calendars are shared', function () {
+    $captured = fakeCalendarHelper();
+
+    HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18'])
+        ->assertHasErrors(['The family hasn\'t shared any calendars yet. They can choose some in Settings > Calendars.']);
+    expect($captured->runs)->toBe([]);
+});
+
+it('says why the calendars could not be read', function () {
+    SharedCalendar::factory()->create();
+    fakeCalendarHelper(error: 'Calendar access is turned off.');
+
+    HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18'])
+        ->assertHasErrors(['The family\'s calendars couldn\'t be read: Calendar access is turned off.']);
 });

@@ -17,6 +17,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ])
         ->name('security.edit');
 
+    Route::livewire('settings/calendars', 'pages::settings.calendars')->name('calendars.edit');
+
     Route::livewire('settings/api-tokens', 'pages::settings.api-tokens')
         ->middleware(['password.confirm'])
         ->name('api-tokens.edit');

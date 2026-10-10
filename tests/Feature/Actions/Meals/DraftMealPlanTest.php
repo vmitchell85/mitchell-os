@@ -4,8 +4,11 @@ use App\Actions\Meals\DraftMealPlan;
 use App\Models\ClaudeRun;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
+use App\Models\SharedCalendar;
 use App\Models\User;
+use App\Services\Calendar\CalendarException;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function () {
@@ -88,4 +91,30 @@ it('gives claude the household food rules', function () {
     app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
 
     expect($captured->process->input)->toContain("Household food rules (always follow these):\nNo seafood.");
+});
+
+it('tells claude what is on the shared calendars that week', function () {
+    SharedCalendar::factory()->create(['calendar_id' => 'KIDS-1', 'label' => 'Kids']);
+    $helper = fakeCalendarHelper(events: [
+        ['calendar_id' => 'KIDS-1', 'title' => 'Football practice', 'all_day' => false, 'start' => '2026-10-13T17:30:00-04:00', 'end' => '2026-10-13T19:00:00-04:00', 'location' => null],
+    ]);
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
+
+    app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
+
+    expect($captured->process->input)->toContain("On the family's calendar this week:\n- Tue 13 Oct 17:30–19:00: Football practice (Kids)");
+    expect(claudeOption($captured->process->command, '--system-prompt'))->toContain('suggest something quick on busy evenings');
+    expect($helper->runs[0][1])->toStartWith('2026-10-12T00:00:00');
+});
+
+it('plans without the calendar when it cannot be read', function () {
+    Exceptions::fake();
+    SharedCalendar::factory()->create();
+    fakeCalendarHelper(error: 'Calendar access is turned off.');
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
+
+    app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
+
+    expect($captured->process->input)->not->toContain("family's calendar");
+    Exceptions::assertReported(CalendarException::class);
 });

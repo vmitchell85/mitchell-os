@@ -4,6 +4,7 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddShoppingItemsTool;
 use App\Mcp\Tools\GetShoppingListTool;
+use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
 use App\Mcp\Tools\ListShoppingListsTool;
 use App\Mcp\Tools\SuggestMealTool;
@@ -15,13 +16,13 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
 
 /**
- * The household's meal plan and shopping lists, for Claude in chat. The chat
+ * The household's meal plan, shopping lists and shared calendars, for Claude in chat. The chat
  * starts this server through the claude CLI and names the household member
  * it's talking to in HOUSEHOLD_USER_ID, so anything added is attributed.
  */
 #[Name('Household')]
 #[Version('1.0.0')]
-#[Instructions('The family\'s meal plan and shopping lists. Meals you suggest are drafts that the family approves on the Meals page; items you add to a shopping list are added straight away and reach Skylight at the next sync.')]
+#[Instructions('The family\'s meal plan, shopping lists and the calendars they share. Meals you suggest are drafts that the family approves on the Meals page; items you add to a shopping list are added straight away and reach Skylight at the next sync.')]
 class HouseholdServer extends Server
 {
     public const string UserEnvironmentVariable = 'HOUSEHOLD_USER_ID';
@@ -37,6 +38,7 @@ class HouseholdServer extends Server
         'mcp__household__list-shopping-lists',
         'mcp__household__get-shopping-list',
         'mcp__household__add-shopping-items',
+        'mcp__household__list-calendar-events',
     ];
 
     protected array $tools = [
@@ -45,6 +47,7 @@ class HouseholdServer extends Server
         ListShoppingListsTool::class,
         GetShoppingListTool::class,
         AddShoppingItemsTool::class,
+        ListCalendarEventsTool::class,
     ];
 
     protected array $resources = [
