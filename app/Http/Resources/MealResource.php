@@ -26,6 +26,7 @@ class MealResource extends JsonResource
             'name' => $this->name,
             'ingredients' => $this->ingredients(),
             'note' => $this->note,
+            'recipe_id' => $this->recipe_id,
             'is_draft' => $this->isDraft(),
             'approved_at' => $this->approved_at,
             'added_by' => $this->added_by,

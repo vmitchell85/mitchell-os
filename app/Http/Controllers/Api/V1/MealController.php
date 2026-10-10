@@ -89,6 +89,7 @@ class MealController extends Controller
             'ingredients' => ['sometimes', 'nullable', 'array', 'max:100'],
             'ingredients.*' => ['nullable', 'string', 'max:255'],
             'note' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'recipe_id' => ['sometimes', 'nullable', 'integer', 'exists:recipes,id'],
         ];
     }
 
@@ -98,7 +99,7 @@ class MealController extends Controller
      */
     protected function attributes(array $validated): array
     {
-        $attributes = collect($validated)->only(['date', 'category', 'name', 'note'])->all();
+        $attributes = collect($validated)->only(['date', 'category', 'name', 'note', 'recipe_id'])->all();
 
         if (array_key_exists('note', $attributes)) {
             $attributes['note'] = $attributes['note'] ?: null;

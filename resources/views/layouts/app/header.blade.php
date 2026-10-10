@@ -26,6 +26,10 @@
                     {{ __('Shopping') }}
                 </flux:navbar.item>
 
+                <flux:navbar.item icon="book-open" :href="route('recipes')" :current="request()->routeIs('recipes*')" wire:navigate>
+                    {{ __('Recipes') }}
+                </flux:navbar.item>
+
                 <flux:navbar.item icon="home" :href="route('household')" :current="request()->routeIs('household')" wire:navigate>
                     {{ __('Household') }}
                 </flux:navbar.item>
@@ -83,6 +87,10 @@
 
                     <flux:sidebar.item icon="shopping-cart" :href="route('lists')" :current="request()->routeIs('lists')" wire:navigate>
                         {{ __('Shopping') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="book-open" :href="route('recipes')" :current="request()->routeIs('recipes*')" wire:navigate>
+                        {{ __('Recipes') }}
                     </flux:sidebar.item>
 
                     <flux:sidebar.item icon="home" :href="route('household')" :current="request()->routeIs('household')" wire:navigate>

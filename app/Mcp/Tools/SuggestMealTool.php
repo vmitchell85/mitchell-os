@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Models\Meal;
+use App\Models\Recipe;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -13,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('suggest-meal')]
-#[Description('Suggest a meal for a date. It is saved as a suggestion that the family approves on the Meals page before it is planned or sent to Skylight.')]
+#[Description('Suggest a meal for a date, optionally one of the family\'s saved recipes. It is saved as a suggestion that the family approves on the Meals page before it is planned or sent to Skylight.')]
 class SuggestMealTool extends Tool
 {
     /**
@@ -28,11 +29,14 @@ class SuggestMealTool extends Tool
             'ingredients' => ['array'],
             'ingredients.*' => ['string', 'max:255'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'recipe_id' => ['nullable', 'integer', 'exists:recipes,id'],
         ], [
             'category.in' => 'The category must be one of: '.implode(', ', Meal::Categories).'.',
+            'recipe_id.exists' => 'There is no saved recipe with that id. Use list-recipes to find one.',
         ]);
 
-        $ingredients = array_filter(array_map('trim', $validated['ingredients'] ?? []));
+        $recipe = $request->integer('recipe_id') !== 0 ? Recipe::find($request->integer('recipe_id')) : null;
+        $ingredients = array_filter(array_map('trim', $validated['ingredients'] ?? [])) ?: ($recipe?->ingredientList() ?? []);
 
         $meal = Meal::create([
             'date' => $validated['date'],
@@ -40,6 +44,7 @@ class SuggestMealTool extends Tool
             'name' => trim($validated['name']),
             'description' => $ingredients !== [] ? implode("\n", $ingredients) : null,
             'note' => trim($validated['note'] ?? '') ?: null,
+            'recipe_id' => $recipe?->id,
             'approved_at' => null,
             'added_by' => $request->user()?->getAuthIdentifier(),
         ]);
@@ -60,6 +65,7 @@ class SuggestMealTool extends Tool
             'name' => $schema->string()->description('The meal, e.g. "Chicken fajitas".')->required(),
             'ingredients' => $schema->array()->items($schema->string())->description('What to buy, with rough quantities, e.g. "1 lb ground beef".'),
             'note' => $schema->string()->description('A short tip, such as prep time.'),
+            'recipe_id' => $schema->integer()->description('The saved recipe\'s id from list-recipes, if it is one. Its ingredients are used when you give none.'),
         ];
     }
 }

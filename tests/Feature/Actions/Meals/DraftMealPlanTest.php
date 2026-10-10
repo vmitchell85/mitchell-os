@@ -5,6 +5,7 @@ use App\Models\ClaudeRun;
 use App\Models\HouseholdNote;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
+use App\Models\Recipe;
 use App\Models\SharedCalendar;
 use App\Models\User;
 use App\Services\Calendar\CalendarException;
@@ -127,4 +128,23 @@ it('gives claude the household notes', function () {
     app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
 
     expect($captured->process->input)->toContain("About the household (keep these in mind):\n- We have soccer practice on Tuesdays.");
+});
+
+it('offers claude the saved recipes and uses a picked recipe\'s own name and ingredients', function () {
+    $recipe = Recipe::factory()->create(['name' => 'Beef chili', 'ingredients' => "1 lb ground beef\n1 can kidney beans", 'total_minutes' => 45]);
+    $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => [
+        [...suggestedMeal('2026-10-12', 'Chili', ingredients: ['beef']), 'recipe_id' => $recipe->id],
+        [...suggestedMeal('2026-10-13', 'Chicken tacos'), 'recipe_id' => 0],
+        [...suggestedMeal('2026-10-14', 'Pot roast'), 'recipe_id' => 999],
+    ]]));
+
+    $drafts = app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
+
+    expect($captured->process->input)->toContain("The family's saved recipes (id: name):\n- {$recipe->id}: Beef chili (45 min)");
+    expect($drafts[0])
+        ->name->toBe('Beef chili')
+        ->description->toBe("1 lb ground beef\n1 can kidney beans")
+        ->recipe_id->toBe($recipe->id);
+    expect($drafts[1]->recipe_id)->toBeNull();
+    expect($drafts[2])->name->toBe('Pot roast')->recipe_id->toBeNull();
 });

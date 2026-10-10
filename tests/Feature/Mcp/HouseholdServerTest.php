@@ -2,14 +2,18 @@
 
 use App\Mcp\Servers\HouseholdServer;
 use App\Mcp\Tools\AddShoppingItemsTool;
+use App\Mcp\Tools\GetRecipeTool;
 use App\Mcp\Tools\GetShoppingListTool;
 use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
+use App\Mcp\Tools\ListRecipesTool;
 use App\Mcp\Tools\ListShoppingListsTool;
 use App\Mcp\Tools\RememberNoteTool;
+use App\Mcp\Tools\SaveRecipeTool;
 use App\Mcp\Tools\SuggestMealTool;
 use App\Models\HouseholdNote;
 use App\Models\Meal;
+use App\Models\Recipe;
 use App\Models\SharedCalendar;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
@@ -27,6 +31,9 @@ it('names its tools the way chat allows them', function (string $tool, string $c
     [AddShoppingItemsTool::class, 'mcp__household__add-shopping-items'],
     [ListCalendarEventsTool::class, 'mcp__household__list-calendar-events'],
     [RememberNoteTool::class, 'mcp__household__remember-note'],
+    [ListRecipesTool::class, 'mcp__household__list-recipes'],
+    [GetRecipeTool::class, 'mcp__household__get-recipe'],
+    [SaveRecipeTool::class, 'mcp__household__save-recipe'],
 ]);
 
 it('lists meals in a date range, marking suggestions awaiting approval', function () {
@@ -158,4 +165,47 @@ it('saves a note as the household member chatting', function () {
         ->assertSee('Saved the note "Lucy is allergic to peanuts."');
 
     expect(HouseholdNote::sole())->body->toBe('Lucy is allergic to peanuts.')->added_by->toBe($user->id);
+});
+
+it('lists and searches the saved recipes', function () {
+    $tacos = Recipe::factory()->create(['name' => 'Chicken tacos', 'total_minutes' => 30, 'servings' => '4']);
+    Recipe::factory()->create(['name' => 'Beef chili']);
+
+    HouseholdServer::tool(ListRecipesTool::class, ['search' => 'taco'])
+        ->assertOk()
+        ->assertStructuredContent(['recipes' => [['id' => $tacos->id, 'name' => 'Chicken tacos', 'total_minutes' => 30, 'servings' => '4']]]);
+});
+
+it('gets a recipe with its ingredients and steps', function () {
+    $recipe = Recipe::factory()->create(['name' => 'Beef chili', 'ingredients' => "1 lb ground beef\nBeans", 'steps' => "Brown.\nSimmer."]);
+
+    HouseholdServer::tool(GetRecipeTool::class, ['recipe_id' => $recipe->id])
+        ->assertOk()
+        ->assertSee('"ingredients":["1 lb ground beef","Beans"]')
+        ->assertSee('"steps":["Brown.","Simmer."]');
+
+    HouseholdServer::tool(GetRecipeTool::class, ['recipe_id' => 999])
+        ->assertHasErrors(['There is no saved recipe with that id. Use list-recipes to find one.']);
+});
+
+it('saves a recipe as the household member chatting', function () {
+    $user = User::factory()->create();
+
+    HouseholdServer::actingAs($user)->tool(SaveRecipeTool::class, [
+        'name' => 'Grandma\'s meatloaf', 'ingredients' => ['2 lb ground beef', ' ', '1 cup breadcrumbs'], 'steps' => ['Mix.', 'Bake for an hour.'], 'total_minutes' => 75,
+    ])->assertOk()->assertSee('Saved the recipe "Grandma\'s meatloaf"');
+
+    expect(Recipe::sole())
+        ->ingredients->toBe("2 lb ground beef\n1 cup breadcrumbs")
+        ->steps->toBe("Mix.\nBake for an hour.")
+        ->total_minutes->toBe(75)
+        ->added_by->toBe($user->id);
+});
+
+it('suggests a saved recipe as a meal with its ingredients', function () {
+    $recipe = Recipe::factory()->create(['name' => 'Beef chili', 'ingredients' => "1 lb ground beef\nBeans"]);
+
+    HouseholdServer::tool(SuggestMealTool::class, ['date' => '2026-10-14', 'category' => 'Dinner', 'name' => 'Beef chili', 'recipe_id' => $recipe->id])->assertOk();
+
+    expect(Meal::sole())->recipe_id->toBe($recipe->id)->description->toBe("1 lb ground beef\nBeans")->isDraft()->toBeTrue();
 });

@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $description
  * @property string|null $note
+ * @property int|null $recipe_id
  * @property Carbon|null $approved_at
  * @property int|null $added_by
  * @property string|null $skylight_id
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-#[Fillable(['date', 'category', 'name', 'description', 'note', 'approved_at', 'added_by', 'skylight_id', 'skylight_date', 'repeats_in_skylight', 'skylight_snapshot'])]
+#[Fillable(['date', 'category', 'name', 'description', 'note', 'recipe_id', 'approved_at', 'added_by', 'skylight_id', 'skylight_date', 'repeats_in_skylight', 'skylight_snapshot'])]
 class Meal extends Model
 {
     /** @use HasFactory<MealFactory> */
@@ -61,6 +62,16 @@ class Meal extends Model
             'repeats_in_skylight' => 'boolean',
             'skylight_snapshot' => 'array',
         ];
+    }
+
+    /**
+     * The saved recipe this meal was planned from, if any.
+     *
+     * @return BelongsTo<Recipe, $this>
+     */
+    public function recipe(): BelongsTo
+    {
+        return $this->belongsTo(Recipe::class);
     }
 
     /**

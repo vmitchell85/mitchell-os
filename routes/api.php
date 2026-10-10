@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\MealApprovalController;
 use App\Http\Controllers\Api\V1\MealController;
 use App\Http\Controllers\Api\V1\MealPlanController;
 use App\Http\Controllers\Api\V1\MealRegenerationController;
+use App\Http\Controllers\Api\V1\RecipeController;
+use App\Http\Controllers\Api\V1\RecipeImportController;
 use App\Http\Controllers\Api\V1\ShoppingListController;
 use App\Http\Controllers\Api\V1\ShoppingListItemController;
 use App\Http\Controllers\Api\V1\ShoppingListProposalController;
@@ -31,6 +33,9 @@ Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum', 'verified'])->
     Route::post('meals/{meal}/approve', MealApprovalController::class)->name('meals.approve');
     Route::post('meals/{meal}/regenerate', MealRegenerationController::class)->name('meals.regenerate');
     Route::post('meal-plans', [MealPlanController::class, 'store'])->name('meal-plans.store');
+
+    Route::post('recipes/import', RecipeImportController::class)->name('recipes.import');
+    Route::apiResource('recipes', RecipeController::class);
 
     Route::apiResource('notes', HouseholdNoteController::class)->except(['show']);
 

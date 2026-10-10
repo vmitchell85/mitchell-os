@@ -13,6 +13,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('meals', 'pages::meals')->name('meals');
 
+    Route::livewire('recipes', 'pages::recipes.index')->name('recipes');
+    Route::livewire('recipes/new', 'pages::recipes.form')->name('recipes.create');
+    Route::livewire('recipes/{recipe}', 'pages::recipes.show')->name('recipes.show');
+    Route::livewire('recipes/{recipe}/edit', 'pages::recipes.form')->name('recipes.edit');
+
     Route::livewire('household', 'pages::household')->name('household');
 });
 

@@ -6,6 +6,7 @@ use App\Actions\Meals\RegenerateMeal;
 use App\Actions\Skylight\SyncWithSkylight;
 use App\Models\HouseholdSetting;
 use App\Models\Meal;
+use App\Models\Recipe;
 use App\Models\ShoppingList;
 use App\Services\Claude\ClaudeException;
 use Carbon\CarbonImmutable;
@@ -161,6 +162,25 @@ new #[Title('Meals')] class extends Component {
     public function discardDrafts(): void
     {
         $this->weekMeals()->drafts()->forceDelete();
+    }
+
+    /**
+     * Start a recipe from a meal and its ingredients, then open it to add the steps.
+     */
+    public function saveAsRecipe(int $mealId): void
+    {
+        $meal = Meal::findOrFail($mealId);
+
+        $recipe = $meal->recipe ?? Recipe::create([
+            'name' => $meal->name,
+            'ingredients' => $meal->description,
+            'notes' => $meal->note,
+            'added_by' => Auth::id(),
+        ]);
+
+        $meal->update(['recipe_id' => $recipe->id]);
+
+        $this->redirectRoute('recipes.edit', $recipe, navigate: true);
     }
 
     public function remove(int $mealId): void
@@ -446,6 +466,11 @@ new #[Title('Meals')] class extends Component {
                             @if ($meal->isDraft())
                                 <flux:button size="xs" variant="primary" wire:click="approve({{ $meal->id }})">{{ __('Approve') }}</flux:button>
                                 <flux:button size="xs" variant="ghost" icon="arrow-path" wire:click="regenerate({{ $meal->id }})" wire:loading.attr="disabled" wire:target="regenerate({{ $meal->id }})" :aria-label="__('Suggest something else')" />
+                            @endif
+                            @if ($meal->recipe_id)
+                                <flux:button size="xs" variant="ghost" icon="book-open" :href="route('recipes.show', $meal->recipe_id)" wire:navigate :aria-label="__('Recipe for :meal', ['meal' => $meal->name])" />
+                            @else
+                                <flux:button size="xs" variant="ghost" icon="bookmark" wire:click="saveAsRecipe({{ $meal->id }})" :aria-label="__('Save :meal as a recipe', ['meal' => $meal->name])" />
                             @endif
                             <flux:button size="xs" variant="ghost" icon="pencil-square" wire:click="edit({{ $meal->id }})" :aria-label="__('Edit :meal', ['meal' => $meal->name])" />
                             <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="remove({{ $meal->id }})" :aria-label="__('Remove :meal', ['meal' => $meal->name])" />

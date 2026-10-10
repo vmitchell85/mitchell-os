@@ -3,11 +3,14 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddShoppingItemsTool;
+use App\Mcp\Tools\GetRecipeTool;
 use App\Mcp\Tools\GetShoppingListTool;
 use App\Mcp\Tools\ListCalendarEventsTool;
 use App\Mcp\Tools\ListMealsTool;
+use App\Mcp\Tools\ListRecipesTool;
 use App\Mcp\Tools\ListShoppingListsTool;
 use App\Mcp\Tools\RememberNoteTool;
+use App\Mcp\Tools\SaveRecipeTool;
 use App\Mcp\Tools\SuggestMealTool;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +26,7 @@ use Laravel\Mcp\Server\Attributes\Version;
  */
 #[Name('Household')]
 #[Version('1.0.0')]
-#[Instructions('The family\'s meal plan, shopping lists and the calendars they share. Meals you suggest are drafts that the family approves on the Meals page; items you add to a shopping list are added straight away and reach Skylight at the next sync.')]
+#[Instructions('The family\'s meal plan, shopping lists, saved recipes and the calendars they share. Meals you suggest are drafts that the family approves on the Meals page; items you add to a shopping list are added straight away and reach Skylight at the next sync.')]
 class HouseholdServer extends Server
 {
     public const string UserEnvironmentVariable = 'HOUSEHOLD_USER_ID';
@@ -41,6 +44,9 @@ class HouseholdServer extends Server
         'mcp__household__add-shopping-items',
         'mcp__household__list-calendar-events',
         'mcp__household__remember-note',
+        'mcp__household__list-recipes',
+        'mcp__household__get-recipe',
+        'mcp__household__save-recipe',
     ];
 
     protected array $tools = [
@@ -51,6 +57,9 @@ class HouseholdServer extends Server
         AddShoppingItemsTool::class,
         ListCalendarEventsTool::class,
         RememberNoteTool::class,
+        ListRecipesTool::class,
+        GetRecipeTool::class,
+        SaveRecipeTool::class,
     ];
 
     protected array $resources = [
