@@ -15,8 +15,14 @@ use App\Http\Controllers\Api\V1\ShoppingListController;
 use App\Http\Controllers\Api\V1\ShoppingListItemController;
 use App\Http\Controllers\Api\V1\ShoppingListProposalController;
 use App\Http\Controllers\Api\V1\SkylightSyncController;
+use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1')->name('api.v1.')->group(function () {
+    Route::post('tokens', [TokenController::class, 'store'])->middleware('throttle:api-login')->name('tokens.store');
+    Route::delete('tokens/current', [TokenController::class, 'destroy'])->middleware('auth:sanctum')->name('tokens.destroy');
+});
 
 Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('user', [UserController::class, 'show'])->name('user');
