@@ -95,7 +95,7 @@ class DraftMealPlan
     protected function prompt(CarbonImmutable $weekStart, array $slots, string $notes): string
     {
         $slotLines = array_map(
-            fn (array $slot): string => '- '.CarbonImmutable::parse($slot['date'])->format('l j F').": {$slot['category']} (date {$slot['date']})",
+            fn (array $slot): string => '- '.CarbonImmutable::parse($slot['date'])->format('l, F j').": {$slot['category']} (date {$slot['date']})",
             $slots,
         );
 

@@ -27,14 +27,14 @@ it('names its tools the way chat allows them', function (string $tool, string $c
 ]);
 
 it('lists meals in a date range, marking suggestions awaiting approval', function () {
-    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Bolognese', 'description' => "500g beef mince\nSpaghetti", 'note' => '30 minutes']);
+    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Bolognese', 'description' => "1 lb ground beef\nSpaghetti", 'note' => '30 minutes']);
     Meal::factory()->draft()->create(['date' => '2026-10-13', 'name' => 'Fajitas']);
     Meal::factory()->create(['date' => '2026-10-20', 'name' => 'Next week roast']);
 
     $response = HouseholdServer::tool(ListMealsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18']);
 
     $response->assertOk()->assertStructuredContent(['meals' => [
-        ['id' => Meal::firstWhere('name', 'Bolognese')->id, 'date' => '2026-10-12', 'day' => 'Monday', 'category' => 'Dinner', 'name' => 'Bolognese', 'status' => 'planned', 'ingredients' => ['500g beef mince', 'Spaghetti'], 'note' => '30 minutes'],
+        ['id' => Meal::firstWhere('name', 'Bolognese')->id, 'date' => '2026-10-12', 'day' => 'Monday', 'category' => 'Dinner', 'name' => 'Bolognese', 'status' => 'planned', 'ingredients' => ['1 lb ground beef', 'Spaghetti'], 'note' => '30 minutes'],
         ['id' => Meal::firstWhere('name', 'Fajitas')->id, 'date' => '2026-10-13', 'day' => 'Tuesday', 'category' => 'Dinner', 'name' => 'Fajitas', 'status' => 'suggestion awaiting approval', 'ingredients' => [], 'note' => null],
     ]]);
 });
@@ -52,7 +52,7 @@ it('saves a suggested meal as a draft attributed to the household member chattin
         'date' => '2026-10-14', 'category' => 'Dinner', 'name' => 'Chicken fajitas', 'ingredients' => ['4 chicken breasts', ' ', '8 tortillas'], 'note' => '',
     ]);
 
-    $response->assertOk()->assertSee('Suggested Chicken fajitas for Dinner on Wednesday 14 October.');
+    $response->assertOk()->assertSee('Suggested Chicken fajitas for Dinner on Wednesday, October 14.');
     expect(Meal::sole())
         ->isDraft()->toBeTrue()
         ->description->toBe("4 chicken breasts\n8 tortillas")
@@ -126,7 +126,7 @@ it('lists events from the shared calendars, saying whose each is', function () {
     $response = HouseholdServer::tool(ListCalendarEventsTool::class, ['from' => '2026-10-12', 'to' => '2026-10-18']);
 
     $response->assertOk()->assertStructuredContent(['events' => [
-        ['calendar' => 'Vince – Work', 'title' => 'Late meeting', 'when' => 'Tue 13 Oct 18:00–19:30', 'all_day' => false, 'start' => '2026-10-13T18:00:00-04:00', 'end' => '2026-10-13T19:30:00-04:00', 'location' => 'Office'],
+        ['calendar' => 'Vince – Work', 'title' => 'Late meeting', 'when' => 'Tue, Oct 13, 6:00 PM–7:30 PM', 'all_day' => false, 'start' => '2026-10-13T18:00:00-04:00', 'end' => '2026-10-13T19:30:00-04:00', 'location' => 'Office'],
     ]]);
     expect($captured->runs[0][3])->toBe('WORK-1');
 });

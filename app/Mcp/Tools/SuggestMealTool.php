@@ -44,7 +44,7 @@ class SuggestMealTool extends Tool
             'added_by' => $request->user()?->getAuthIdentifier(),
         ]);
 
-        return Response::text("Suggested {$meal->name} for {$meal->category} on {$meal->date->format('l j F')}. The family can approve it on the Meals page.");
+        return Response::text("Suggested {$meal->name} for {$meal->category} on {$meal->date->format('l, F j')}. The family can approve it on the Meals page.");
     }
 
     /**
@@ -58,7 +58,7 @@ class SuggestMealTool extends Tool
             'date' => $schema->string()->description('YYYY-MM-DD.')->required(),
             'category' => $schema->string()->enum(Meal::Categories)->required(),
             'name' => $schema->string()->description('The meal, e.g. "Chicken fajitas".')->required(),
-            'ingredients' => $schema->array()->items($schema->string())->description('What to buy, with rough quantities, e.g. "500g beef mince".'),
+            'ingredients' => $schema->array()->items($schema->string())->description('What to buy, with rough quantities, e.g. "1 lb ground beef".'),
             'note' => $schema->string()->description('A short tip, such as prep time.'),
         ];
     }

@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  */
 class BuildShoppingList
 {
-    public const string System = 'You turn a family\'s meal plan into a shopping list. Combine the same ingredient across meals into one line with the total quantity (for example "1kg beef mince"). '
+    public const string System = 'You turn a family\'s meal plan into a shopping list. Combine the same ingredient across meals into one line with the total quantity (for example "2 lb ground beef"). '
         .'If a meal has no ingredients listed, use what that dish typically needs. Leave out basics most kitchens already have, such as salt, pepper, oil, flour and dried herbs, '
         .'and anything already on the list, even if it is worded differently. Put each item in one of the list\'s existing sections when one fits, otherwise use a common supermarket aisle name.';
 
@@ -42,7 +42,7 @@ class BuildShoppingList
         $onList = $list->items()->whereNull('completed_at')->orderBy('position')->get();
         $sections = $list->items()->whereNotNull('section')->distinct()->orderBy('section')->pluck('section');
 
-        $mealLines = $meals->map(fn (Meal $meal): string => "- {$meal->date->format('l j F')}, {$meal->category}: {$meal->name}"
+        $mealLines = $meals->map(fn (Meal $meal): string => "- {$meal->date->format('l, F j')}, {$meal->category}: {$meal->name}"
             .($meal->description ? "\n  Ingredients: ".str_replace("\n", '; ', $meal->description) : "\n  Ingredients: not listed"));
 
         $result = $this->claude->ask(new ClaudeRequest(

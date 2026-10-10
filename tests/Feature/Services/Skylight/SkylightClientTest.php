@@ -73,7 +73,7 @@ it('reads meals, naming recipe-linked meals after their recipe', function () {
         ->dates->toBe(['2026-10-12']);
     expect($bolognese->category)->toEqual(new SkylightMealCategory('503', 'Dinner', isEnabled: true));
     expect($fishAndChips)
-        ->name->toBe('Fish and chips')
+        ->name->toBe('Sloppy joes')
         ->recipeId->toBe('601')
         ->isRecurring->toBeTrue()
         ->dates->toBe(['2026-10-09', '2026-10-16']);

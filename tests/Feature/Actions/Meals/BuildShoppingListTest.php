@@ -18,22 +18,22 @@ function buildShoppingList(ShoppingList $list, ?User $user = null): array
 it('gives claude the approved meals in range, what is on the list and its sections', function () {
     $user = User::factory()->create();
     $list = ShoppingList::factory()->create();
-    ShoppingListItem::factory()->for($list)->create(['name' => 'Semi-skimmed milk', 'section' => 'Dairy']);
+    ShoppingListItem::factory()->for($list)->create(['name' => '2% milk', 'section' => 'Dairy']);
     ShoppingListItem::factory()->for($list)->completed()->create(['name' => 'Bananas', 'section' => 'Produce']);
-    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Bolognese', 'description' => "500g beef mince\n1 tin tomatoes"]);
-    Meal::factory()->create(['date' => '2026-10-16', 'name' => 'Fish and chips', 'description' => null]);
-    Meal::factory()->draft()->create(['date' => '2026-10-13', 'name' => 'Unapproved lasagne']);
+    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Bolognese', 'description' => "1 lb ground beef\n1 can diced tomatoes"]);
+    Meal::factory()->create(['date' => '2026-10-16', 'name' => 'Sloppy joes', 'description' => null]);
+    Meal::factory()->draft()->create(['date' => '2026-10-13', 'name' => 'Unapproved lasagna']);
     Meal::factory()->create(['date' => '2026-10-20', 'name' => 'Next week roast']);
     $captured = fakeClaudeProcess(claudeStructuredResult(['items' => []]));
 
     buildShoppingList($list, $user);
 
     expect($captured->process->input)
-        ->toContain("- Monday 12 October, Dinner: Bolognese\n  Ingredients: 500g beef mince; 1 tin tomatoes")
-        ->toContain("- Friday 16 October, Dinner: Fish and chips\n  Ingredients: not listed")
-        ->toContain("Already on the list:\n- Semi-skimmed milk")
+        ->toContain("- Monday, October 12, Dinner: Bolognese\n  Ingredients: 1 lb ground beef; 1 can diced tomatoes")
+        ->toContain("- Friday, October 16, Dinner: Sloppy joes\n  Ingredients: not listed")
+        ->toContain("Already on the list:\n- 2% milk")
         ->toContain("The list's sections: Dairy, Produce")
-        ->not->toContain('Unapproved lasagne')
+        ->not->toContain('Unapproved lasagna')
         ->not->toContain('Next week roast')
         ->not->toContain('- Bananas');
     expect(ClaudeRun::sole())->feature->toBe('shopping-list-builder')->user_id->toBe($user->id);
@@ -44,9 +44,9 @@ it('returns proposals without blanks or anything already on the list', function 
     ShoppingListItem::factory()->for($list)->create(['name' => 'Milk']);
     Meal::factory()->create(['date' => '2026-10-12']);
     fakeClaudeProcess(claudeStructuredResult(['items' => [
-        ['name' => ' 1kg beef mince ', 'section' => 'Meat', 'meals' => ['Bolognese', ' Chilli ']],
+        ['name' => ' 2 lb ground beef ', 'section' => 'Meat', 'meals' => ['Bolognese', ' Chilli ']],
         ['name' => 'milk', 'section' => 'Dairy', 'meals' => ['Porridge']],
-        ['name' => '1KG BEEF MINCE', 'section' => 'Meat', 'meals' => []],
+        ['name' => '2 LB GROUND BEEF', 'section' => 'Meat', 'meals' => []],
         ['name' => '', 'section' => 'Other', 'meals' => []],
         ['name' => 'Tortillas', 'section' => '', 'meals' => ['Fajitas']],
     ]]));
@@ -54,7 +54,7 @@ it('returns proposals without blanks or anything already on the list', function 
     $proposals = buildShoppingList($list);
 
     expect($proposals)->toBe([
-        ['name' => '1kg beef mince', 'section' => 'Meat', 'meals' => ['Bolognese', 'Chilli']],
+        ['name' => '2 lb ground beef', 'section' => 'Meat', 'meals' => ['Bolognese', 'Chilli']],
         ['name' => 'Tortillas', 'section' => null, 'meals' => ['Fajitas']],
     ]);
     expect($list->items()->count())->toBe(1);

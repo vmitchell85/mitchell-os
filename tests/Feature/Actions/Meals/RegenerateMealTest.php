@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\Claude\ClaudeException;
 
 it('replaces a draft with a different suggestion for the same slot', function () {
-    $draft = Meal::factory()->draft()->create(['date' => '2026-10-13', 'name' => 'Lasagne', 'note' => 'Bake ahead']);
+    $draft = Meal::factory()->draft()->create(['date' => '2026-10-13', 'name' => 'Lasagna', 'note' => 'Bake ahead']);
     $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => [
         ['date' => '2026-10-13', 'category' => 'Dinner', 'name' => 'Stir fry', 'ingredients' => ['Noodles', 'Pak choi'], 'note' => ''],
     ]]));
@@ -19,17 +19,17 @@ it('replaces a draft with a different suggestion for the same slot', function ()
         ->note->toBeNull()
         ->isDraft()->toBeTrue();
     expect($captured->process->input)
-        ->toContain('Suggest one Dinner for Tuesday 13 October (date 2026-10-13). It must be something other than Lasagne.')
+        ->toContain('Suggest one Dinner for Tuesday, October 13 (date 2026-10-13). It must be something other than Lasagna.')
         ->not->toContain('Already planned this week')
         ->toContain("Notes from the household:\nSomething quick");
 });
 
 it('throws and leaves the draft alone when claude suggests nothing', function () {
-    $draft = Meal::factory()->draft()->create(['name' => 'Lasagne']);
+    $draft = Meal::factory()->draft()->create(['name' => 'Lasagna']);
     fakeClaudeProcess(claudeStructuredResult(['meals' => []]));
 
     expect(fn () => app(RegenerateMeal::class)->handle(User::factory()->create(), $draft))
         ->toThrow(ClaudeException::class, 'Claude did not suggest a meal.');
 
-    expect($draft->fresh()->name)->toBe('Lasagne');
+    expect($draft->fresh()->name)->toBe('Lasagna');
 });

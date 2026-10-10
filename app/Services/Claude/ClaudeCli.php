@@ -187,7 +187,7 @@ class ClaudeCli
         $now = now()->timezone(config('app.display_timezone'));
 
         return ($request->systemPrompt ?? config('claude.system_prompt'))
-            ."\n\nIt is currently {$now->format('l j F Y, H:i')} ({$now->getTimezone()->getName()}).";
+            ."\n\nIt is currently {$now->format('l, F j, Y, g:i A')} ({$now->getTimezone()->getName()}).";
     }
 
     /**

@@ -14,7 +14,7 @@ use Carbon\CarbonImmutable;
 class MealPlanPrompt
 {
     public const string System = 'You plan meals for a family. Suggest practical home-cooked meals that suit the household notes, vary across the week, and avoid repeating anything they have eaten recently. '
-        .'For each meal, list the ingredients to buy with rough quantities (for example "500g beef mince"), leaving out basics like salt, pepper and oil. '
+        .'For each meal, list the ingredients to buy with rough quantities (for example "1 lb ground beef"), leaving out basics like salt, pepper and oil. '
         .'Keep notes short and useful, such as prep time or a tip; leave them empty if there is nothing worth saying. '
         .'Use what is on the family\'s calendar: suggest something quick on busy evenings, and leave out a meal slot when the calendar shows they are eating out or away.';
 
@@ -51,7 +51,7 @@ class MealPlanPrompt
      */
     public static function context(CarbonImmutable $weekStart, ?Meal $except = null): string
     {
-        $describe = fn (Meal $meal): string => "- {$meal->date->format('l j F')}, {$meal->category}: {$meal->name}";
+        $describe = fn (Meal $meal): string => "- {$meal->date->format('l, F j')}, {$meal->category}: {$meal->name}";
 
         $thisWeek = Meal::whereBetween('date', [$weekStart, $weekStart->addDays(6)])
             ->when($except, fn ($query) => $query->whereKeyNot($except->id))

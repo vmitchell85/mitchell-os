@@ -19,15 +19,15 @@ it('redirects guests to the login page', function () {
 });
 
 it('shows this week\'s meals by day, in breakfast, lunch, dinner order', function () {
-    Meal::factory()->create(['date' => '2026-10-07', 'category' => 'Dinner', 'name' => 'Fish and chips']);
+    Meal::factory()->create(['date' => '2026-10-07', 'category' => 'Dinner', 'name' => 'Sloppy joes']);
     Meal::factory()->create(['date' => '2026-10-07', 'category' => 'Breakfast', 'name' => 'Pancakes']);
-    Meal::factory()->draft()->create(['date' => '2026-10-08', 'name' => 'Lasagne']);
+    Meal::factory()->draft()->create(['date' => '2026-10-08', 'name' => 'Lasagna']);
     Meal::factory()->create(['date' => '2026-10-14', 'name' => 'Next week roast']);
 
     $response = $this->actingAs(User::factory()->create())->get(route('meals'));
 
     $response->assertOk()
-        ->assertSeeInOrder(['5 Oct – 11 Oct 2026', '1 suggestion to review', 'Wednesday 7 October', 'Pancakes', 'Fish and chips', 'Thursday 8 October', 'Lasagne'])
+        ->assertSeeInOrder(['Oct 5 – Oct 11, 2026', '1 suggestion to review', 'Wednesday, October 7', 'Pancakes', 'Sloppy joes', 'Thursday, October 8', 'Lasagna'])
         ->assertDontSee('Next week roast');
 });
 
@@ -50,7 +50,7 @@ it('works out this week and today in eastern time, not utc', function () {
     Livewire::actingAs(User::factory()->create())
         ->test('pages::meals')
         ->assertSet('week', '2026-10-05')
-        ->assertSeeInOrder(['Sunday 11 October', 'Today']);
+        ->assertSeeInOrder(['Sunday, October 11', 'Today']);
 });
 
 it('falls back to this week when the week in the url is not a date', function () {
@@ -92,12 +92,12 @@ it('validates a meal before saving it', function () {
 });
 
 it('edits a meal', function () {
-    $meal = Meal::factory()->create(['date' => '2026-10-08', 'name' => 'Fish and chips']);
+    $meal = Meal::factory()->create(['date' => '2026-10-08', 'name' => 'Sloppy joes']);
 
     Livewire::actingAs(User::factory()->create())
         ->test('pages::meals')
         ->call('edit', $meal->id)
-        ->assertSet('mealName', 'Fish and chips')
+        ->assertSet('mealName', 'Sloppy joes')
         ->set('mealName', 'Fish pie')
         ->set('mealDate', '2026-10-09')
         ->call('saveMeal')
@@ -181,7 +181,7 @@ it('requires at least one meal of the day to plan', function () {
 });
 
 it('only regenerates suggestions, not approved meals', function () {
-    $approved = Meal::factory()->create(['date' => '2026-10-07', 'name' => 'Fish and chips']);
+    $approved = Meal::factory()->create(['date' => '2026-10-07', 'name' => 'Sloppy joes']);
     fakeClaudeProcess();
 
     Livewire::actingAs(User::factory()->create())
@@ -189,19 +189,19 @@ it('only regenerates suggestions, not approved meals', function () {
         ->call('regenerate', $approved->id)
         ->assertNotFound();
 
-    expect($approved->fresh()->name)->toBe('Fish and chips');
+    expect($approved->fresh()->name)->toBe('Sloppy joes');
 });
 
 it('syncs meals with skylight from the page', function () {
     $skylight = new FakeSkylight;
-    $skylight->addMeal('Fish and chips', ['2026-10-09']);
+    $skylight->addMeal('Sloppy joes', ['2026-10-09']);
     app()->instance(SkylightClient::class, new SkylightClient($skylight));
 
     Livewire::actingAs(User::factory()->create())
         ->test('pages::meals')
         ->call('sync')
         ->assertDispatched('toast-show', fn (string $event, array $params) => $params['slots']['text'] === '1 change from Skylight.')
-        ->assertSee('Fish and chips');
+        ->assertSee('Sloppy joes');
 });
 
 it('builds a shopping list from the week\'s meals and adds only the ticked items', function () {
@@ -209,7 +209,7 @@ it('builds a shopping list from the week\'s meals and adds only the ticked items
     $groceries = ShoppingList::factory()->create(['name' => 'Groceries', 'is_default' => true]);
     Meal::factory()->create(['date' => '2026-10-07', 'name' => 'Bolognese']);
     $captured = fakeClaudeProcess(claudeStructuredResult(['items' => [
-        ['name' => '500g beef mince', 'section' => 'Meat', 'meals' => ['Bolognese']],
+        ['name' => '1 lb ground beef', 'section' => 'Meat', 'meals' => ['Bolognese']],
         ['name' => 'Spaghetti', 'section' => 'Pasta', 'meals' => ['Bolognese']],
     ]]));
 
@@ -220,14 +220,14 @@ it('builds a shopping list from the week\'s meals and adds only the ticked items
         ->assertSet('shopFrom', '2026-10-05')
         ->assertSet('shopTo', '2026-10-11')
         ->call('buildShoppingList')
-        ->assertSee('500g beef mince')
+        ->assertSee('1 lb ground beef')
         ->assertSee('For Bolognese')
         ->set('selectedProposals', ['0'])
         ->call('addProposals')
         ->assertDispatched('toast-show', fn (string $event, array $params) => $params['slots']['text'] === 'Added 1 item to Groceries.');
 
     expect($groceries->items()->get()->map(fn ($item) => [$item->name, $item->section, $item->added_by])->all())
-        ->toBe([['500g beef mince', 'Meat', $user->id]]);
+        ->toBe([['1 lb ground beef', 'Meat', $user->id]]);
     $page->assertSet('proposals', []);
 });
 

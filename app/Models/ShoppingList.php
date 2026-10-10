@@ -32,7 +32,7 @@ class ShoppingList extends Model
     use HasFactory;
 
     /**
-     * Colours offered for new lists. Skylight requires one.
+     * Colors offered for new lists. Skylight requires one.
      *
      * @var list<string>
      */

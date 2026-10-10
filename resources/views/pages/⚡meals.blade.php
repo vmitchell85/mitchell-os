@@ -361,7 +361,7 @@ new #[Title('Meals')] class extends Component {
         <div class="flex items-center gap-2">
             <flux:button size="sm" variant="ghost" icon="chevron-left" wire:click="previousWeek" :aria-label="__('Previous week')" />
             <flux:heading size="lg">
-                {{ CarbonImmutable::parse($week)->format('j M') }} – {{ CarbonImmutable::parse($week)->addDays(6)->format('j M Y') }}
+                {{ CarbonImmutable::parse($week)->format('M j') }} – {{ CarbonImmutable::parse($week)->addDays(6)->format('M j, Y') }}
             </flux:heading>
             <flux:button size="sm" variant="ghost" icon="chevron-right" wire:click="nextWeek" :aria-label="__('Next week')" />
             <flux:button size="sm" variant="ghost" wire:click="thisWeek">{{ __('This week') }}</flux:button>
@@ -400,7 +400,7 @@ new #[Title('Meals')] class extends Component {
             <section wire:key="day-{{ $date }}" class="flex flex-col gap-2">
                 <div class="flex items-center justify-between">
                     <flux:heading @class(['text-accent-content' => $day->isToday()])>
-                        {{ $day->format('l j F') }}
+                        {{ $day->format('l, F j') }}
                         @if ($day->isToday())
                             <flux:badge size="sm" class="ms-2">{{ __('Today') }}</flux:badge>
                         @endif

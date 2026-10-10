@@ -98,11 +98,11 @@ it('pulls items added, ticked, renamed and moved in skylight', function () {
 
 it('sends ticks, renames and section changes made here', function () {
     [$skylight, $list] = syncedGroceries();
-    localItem($list, '7001')->update(['name' => 'Semi-skimmed milk', 'section' => 'Fridge', 'completed_at' => now()]);
+    localItem($list, '7001')->update(['name' => '2% milk', 'section' => 'Fridge', 'completed_at' => now()]);
 
     syncShoppingLists($skylight);
 
-    expect($skylight->item('9002', '7001'))->toMatchArray(['label' => 'Semi-skimmed milk', 'section' => 'Fridge', 'status' => 'completed']);
+    expect($skylight->item('9002', '7001'))->toMatchArray(['label' => '2% milk', 'section' => 'Fridge', 'status' => 'completed']);
     expect($skylight->writtenTools())->toBe(['skylight_update_list_item']);
 });
 

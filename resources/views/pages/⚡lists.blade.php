@@ -229,7 +229,7 @@ new #[Title('Shopping lists')] class extends Component {
             <flux:input wire:model="newListName" :label="__('Name')" />
 
             <fieldset>
-                <legend class="mb-2 text-sm font-medium">{{ __('Colour') }}</legend>
+                <legend class="mb-2 text-sm font-medium">{{ __('Color') }}</legend>
                 <div class="flex gap-3">
                     @foreach (ShoppingList::Colors as $color)
                         <label wire:key="color-{{ $color }}" class="cursor-pointer">

@@ -25,8 +25,8 @@ it('asks for events from the chosen calendars only and keeps their local times',
 
     expect($captured->runs[0][0])->toBe('events')
         ->and($captured->runs[0][3])->toBe('A1,B2')
-        ->and($events[0]->when())->toBe('Tue 13 Oct 18:00–19:30')
-        ->and($events[1]->when())->toBe('Sat 17 Oct – Sun 18 Oct (all day)')
+        ->and($events[0]->when())->toBe('Tue, Oct 13, 6:00 PM–7:30 PM')
+        ->and($events[1]->when())->toBe('Sat, Oct 17 – Sun, Oct 18 (all day)')
         ->and($events[1]->location)->toBeNull();
 });
 
@@ -56,5 +56,5 @@ it('shows event times in the household\'s timezone', function () {
 
     $events = app(MacCalendar::class)->events(CarbonImmutable::parse('2026-10-12'), CarbonImmutable::parse('2026-10-18'), ['A1']);
 
-    expect($events[0]->when())->toBe('Tue 13 Oct 18:00–19:00');
+    expect($events[0]->when())->toBe('Tue, Oct 13, 6:00 PM–7:00 PM');
 });

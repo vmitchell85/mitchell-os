@@ -15,14 +15,14 @@ beforeEach(function () {
     $this->travelTo('2026-10-09 12:00:00');
 });
 
-function suggestedMeal(string $date, string $name, string $category = 'Dinner', array $ingredients = ['500g beef mince'], string $note = ''): array
+function suggestedMeal(string $date, string $name, string $category = 'Dinner', array $ingredients = ['1 lb ground beef'], string $note = ''): array
 {
     return compact('date', 'category', 'name', 'ingredients', 'note');
 }
 
 it('drafts meals for the empty slots only, with ingredients as the description', function () {
     $user = User::factory()->create();
-    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Fish and chips']);
+    Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Sloppy joes']);
     $captured = fakeClaudeProcess(claudeStructuredResult(['meals' => [
         suggestedMeal('2026-10-13', 'Chicken fajitas', ingredients: ['4 chicken breasts', ' 8 tortillas ', ''], note: '30 minutes'),
         suggestedMeal('2026-10-14', 'Veggie chilli'),
@@ -38,9 +38,9 @@ it('drafts meals for the empty slots only, with ingredients as the description',
         ->note->toBe('30 minutes')
         ->added_by->toBe($user->id);
     expect($captured->process->input)
-        ->toContain('Tuesday 13 October: Dinner (date 2026-10-13)')
-        ->not->toContain('Monday 12 October: Dinner')
-        ->toContain("Already planned this week:\n- Monday 12 October, Dinner: Fish and chips")
+        ->toContain('Tuesday, October 13: Dinner (date 2026-10-13)')
+        ->not->toContain('Monday, October 12: Dinner')
+        ->toContain("Already planned this week:\n- Monday, October 12, Dinner: Sloppy joes")
         ->toContain("Notes from the household:\nSunday vegetarian");
     expect(ClaudeRun::sole())->feature->toBe('meal-planner')->user_id->toBe($user->id);
 });
@@ -63,13 +63,13 @@ it('ignores suggestions for slots that were not asked for or are already filled'
         suggestedMeal('2026-10-12', 'Duplicate dinner'),
         suggestedMeal('2026-10-13', 'Porridge', category: 'Breakfast'),
         suggestedMeal('2026-10-30', 'Wrong week'),
-        suggestedMeal('2026-10-13', 'Lasagne'),
-        suggestedMeal('2026-10-13', 'Second lasagne'),
+        suggestedMeal('2026-10-13', 'Lasagna'),
+        suggestedMeal('2026-10-13', 'Second lasagna'),
     ]]));
 
     $drafts = app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
 
-    expect($drafts->pluck('name')->all())->toBe(['Lasagne']);
+    expect($drafts->pluck('name')->all())->toBe(['Lasagna']);
 });
 
 it('does not ask claude when every requested slot is already planned', function () {
@@ -102,7 +102,7 @@ it('tells claude what is on the shared calendars that week', function () {
 
     app(DraftMealPlan::class)->handle(User::factory()->create(), CarbonImmutable::parse('2026-10-12'), ['Dinner']);
 
-    expect($captured->process->input)->toContain("On the family's calendar this week:\n- Tue 13 Oct 17:30–19:00: Football practice (Kids)");
+    expect($captured->process->input)->toContain("On the family's calendar this week:\n- Tue, Oct 13, 5:30 PM–7:00 PM: Football practice (Kids)");
     expect(claudeOption($captured->process->command, '--system-prompt'))->toContain('suggest something quick on busy evenings');
     expect($helper->runs[0][1])->toStartWith('2026-10-12T00:00:00');
 });

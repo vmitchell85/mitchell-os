@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
 #[Name('list-calendar-events')]
-#[Description('List events between two dates from the family members\' own calendars (such as their Google calendars), each labelled with whose calendar it is. Times are the family\'s local time.')]
+#[Description('List events between two dates from the family members\' own calendars (such as their Google calendars), each labeled with whose calendar it is. Times are the family\'s local time.')]
 class ListCalendarEventsTool extends Tool
 {
     /**

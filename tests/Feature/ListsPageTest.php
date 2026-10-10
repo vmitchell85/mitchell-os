@@ -160,7 +160,7 @@ it('creates a list to be added to skylight at the next sync and opens it', funct
     $component->assertRedirect(route('lists', $list));
 });
 
-it('only accepts the offered colours for a new list', function () {
+it('only accepts the offered colors for a new list', function () {
     Livewire::actingAs(User::factory()->create())
         ->test('pages::lists')
         ->set('newListName', 'Party')

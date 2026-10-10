@@ -27,11 +27,11 @@ describe('ask', function () {
     it('returns the answer, structured output, session and usage', function () {
         fakeClaudeProcess(claudeFixture('ask-structured.json'));
 
-        $result = app(ClaudeCli::class)->ask(new ClaudeRequest('Name a fruit and its colour'));
+        $result = app(ClaudeCli::class)->ask(new ClaudeRequest('Name a fruit and its color'));
 
         expect($result)
-            ->text->toBe('{"fruit":"Banana","colour":"Yellow"}')
-            ->structured->toBe(['fruit' => 'Banana', 'colour' => 'Yellow'])
+            ->text->toBe('{"fruit":"Banana","color":"Yellow"}')
+            ->structured->toBe(['fruit' => 'Banana', 'color' => 'Yellow'])
             ->sessionId->toBe('effd063a-f84b-4d44-be43-a53d44acb7b6')
             ->costUsd->toBe(0.0008510000000000001)
             ->inputTokens->toBe(4056)
@@ -119,7 +119,7 @@ describe('ask', function () {
         app(ClaudeCli::class)->ask(new ClaudeRequest('What is on tomorrow?'));
 
         expect(claudeOption($captured->process->command, '--system-prompt'))
-            ->toBe("You help the household.\n\nIt is currently Friday 9 October 2026, 21:30 (America/New_York).");
+            ->toBe("You help the household.\n\nIt is currently Friday, October 9, 2026, 9:30 PM (America/New_York).");
     });
 
     it('starts only the MCP servers whose tools are allowed and passes their secrets through the environment', function () {

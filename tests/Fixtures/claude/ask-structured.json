@@ -6,10 +6,10 @@
   "num_turns": 2,
   "session_id": "effd063a-f84b-4d44-be43-a53d44acb7b6",
   "total_cost_usd": 0.0008510000000000001,
-  "result": "{\"fruit\":\"Banana\",\"colour\":\"Yellow\"}",
+  "result": "{\"fruit\":\"Banana\",\"color\":\"Yellow\"}",
   "structured_output": {
     "fruit": "Banana",
-    "colour": "Yellow"
+    "color": "Yellow"
   },
   "usage": {
     "input_tokens": 2,

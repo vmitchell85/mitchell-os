@@ -42,13 +42,13 @@ it('adds a meal as approved, recording who added it', function () {
     $response = $this->postJson(route('api.v1.meals.store'), [
         'date' => '2026-10-14',
         'category' => 'Dinner',
-        'name' => 'Lasagne',
-        'ingredients' => ['500g beef mince', ' ', 'Lasagne sheets'],
+        'name' => 'Lasagna',
+        'ingredients' => ['1 lb ground beef', ' ', 'Lasagna noodles'],
     ]);
 
     $response->assertCreated()->assertJsonPath('data.is_draft', false);
     expect(Meal::sole())
-        ->description->toBe("500g beef mince\nLasagne sheets")
+        ->description->toBe("1 lb ground beef\nLasagna noodles")
         ->added_by->toBe($this->user->id);
 });
 

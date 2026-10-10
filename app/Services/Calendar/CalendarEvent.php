@@ -53,12 +53,12 @@ final readonly class CalendarEvent
     {
         if ($this->allDay) {
             return $this->start->isSameDay($this->end)
-                ? $this->start->format('D j M').' (all day)'
-                : $this->start->format('D j M').' – '.$this->end->format('D j M').' (all day)';
+                ? $this->start->format('D, M j').' (all day)'
+                : $this->start->format('D, M j').' – '.$this->end->format('D, M j').' (all day)';
         }
 
         return $this->start->isSameDay($this->end)
-            ? $this->start->format('D j M H:i').'–'.$this->end->format('H:i')
-            : $this->start->format('D j M H:i').' – '.$this->end->format('D j M H:i');
+            ? $this->start->format('D, M j, g:i A').'–'.$this->end->format('g:i A')
+            : $this->start->format('D, M j, g:i A').' – '.$this->end->format('D, M j, g:i A');
     }
 }

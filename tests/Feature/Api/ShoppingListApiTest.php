@@ -36,7 +36,7 @@ it('creates a list to be added to skylight at the next sync, and renames it', fu
     expect($list->fresh()->name)->toBe('Birthday party');
 });
 
-it('only accepts skylight\'s list colours', function () {
+it('only accepts skylight\'s list colors', function () {
     $this->postJson(route('api.v1.shopping-lists.store'), ['name' => 'Party', 'color' => 'red'])->assertJsonValidationErrors('color');
 });
 
@@ -102,13 +102,13 @@ it('proposes what to buy for the approved meals without adding anything', functi
     $list = ShoppingList::factory()->create();
     Meal::factory()->create(['date' => '2026-10-12', 'name' => 'Chilli']);
     fakeClaudeProcess(claudeStructuredResult(['items' => [
-        ['name' => '500g beef mince', 'section' => 'Meat', 'meals' => ['Chilli']],
+        ['name' => '1 lb ground beef', 'section' => 'Meat', 'meals' => ['Chilli']],
     ]]));
 
     $response = $this->postJson(route('api.v1.shopping-lists.proposals.store', $list), ['from' => '2026-10-12', 'to' => '2026-10-18']);
 
     $response->assertOk()->assertExactJson(['data' => [
-        ['name' => '500g beef mince', 'section' => 'Meat', 'meals' => ['Chilli']],
+        ['name' => '1 lb ground beef', 'section' => 'Meat', 'meals' => ['Chilli']],
     ]]);
     expect($list->items()->count())->toBe(0);
 });
