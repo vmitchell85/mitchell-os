@@ -32,8 +32,7 @@ return [
     | Defaults
     |--------------------------------------------------------------------------
     |
-    | Used when a request doesn't specify its own. The timeout is in seconds
-    | and the budget caps the spend of a single run in US dollars.
+    | Used when a request doesn't specify its own. The timeout is in seconds.
     |
     */
 
@@ -42,8 +41,6 @@ return [
     'system_prompt' => env('CLAUDE_SYSTEM_PROMPT', 'You are a helpful assistant for the Mitchell household.'),
 
     'timeout' => (int) env('CLAUDE_TIMEOUT', 300),
-
-    'max_budget_usd' => (float) env('CLAUDE_MAX_BUDGET_USD', 1.0),
 
     /*
     |--------------------------------------------------------------------------

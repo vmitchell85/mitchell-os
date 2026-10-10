@@ -39,7 +39,6 @@ class DraftMealPlan
             user: $user,
             systemPrompt: MealPlanPrompt::System,
             jsonSchema: MealPlanPrompt::schema(),
-            maxBudgetUsd: 0.5,
         ));
 
         $drafts = new Collection;

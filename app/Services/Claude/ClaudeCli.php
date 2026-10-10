@@ -140,7 +140,6 @@ class ClaudeCli
             '--output-format', $outputFormat,
             '--model', $request->model ?? config('claude.model'),
             '--system-prompt', $this->systemPrompt($request),
-            '--max-budget-usd', (string) ($request->maxBudgetUsd ?? config('claude.max_budget_usd')),
             '--setting-sources', '',
             '--strict-mcp-config',
             '--tools', implode(',', $request->builtInTools()),

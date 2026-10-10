@@ -49,7 +49,6 @@ class GenerateConversationTitle implements ShouldQueue
                 'properties' => ['title' => ['type' => 'string']],
                 'required' => ['title'],
             ],
-            maxBudgetUsd: 0.05,
         ));
 
         $this->conversation->update([

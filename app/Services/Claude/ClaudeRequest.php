@@ -25,7 +25,6 @@ final readonly class ClaudeRequest
         public ?array $jsonSchema = null,
         public ?string $resumeSessionId = null,
         public bool $persistSession = false,
-        public ?float $maxBudgetUsd = null,
         public array $environment = [],
     ) {}
 

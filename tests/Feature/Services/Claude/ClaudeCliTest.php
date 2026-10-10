@@ -20,7 +20,6 @@ beforeEach(function () {
         'claude.working_directory' => sys_get_temp_dir().'/mitchell-os-claude-tests',
         'claude.model' => 'sonnet',
         'claude.system_prompt' => 'You help the household.',
-        'claude.max_budget_usd' => 0.5,
     ]);
 });
 
@@ -90,11 +89,11 @@ describe('ask', function () {
             claudeOption($command, '--setting-sources'),
             claudeOption($command, '--tools'),
             claudeOption($command, '--model'),
-            claudeOption($command, '--max-budget-usd'),
-        ])->toBe(['json', '', '', 'sonnet', '0.5']);
+        ])->toBe(['json', '', '', 'sonnet']);
+        expect($command)->not->toContain('--max-budget-usd');
     });
 
-    it('passes the model, system prompt, budget and json schema from the request', function () {
+    it('passes the model, system prompt and json schema from the request', function () {
         $captured = fakeClaudeProcess(claudeFixture('ask-structured.json'));
 
         app(ClaudeCli::class)->ask(new ClaudeRequest(
@@ -102,15 +101,13 @@ describe('ask', function () {
             systemPrompt: 'You are a greengrocer.',
             model: 'haiku',
             jsonSchema: ['type' => 'object', 'properties' => ['fruit' => ['type' => 'string']]],
-            maxBudgetUsd: 0.05,
         ));
 
         $command = $captured->process->command;
         expect([
             claudeOption($command, '--model'),
-            claudeOption($command, '--max-budget-usd'),
             claudeOption($command, '--json-schema'),
-        ])->toBe(['haiku', '0.05', '{"type":"object","properties":{"fruit":{"type":"string"}}}']);
+        ])->toBe(['haiku', '{"type":"object","properties":{"fruit":{"type":"string"}}}']);
         expect(claudeOption($command, '--system-prompt'))->toStartWith('You are a greengrocer.');
     });
 

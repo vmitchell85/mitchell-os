@@ -31,7 +31,6 @@ class RegenerateMeal
             user: $user,
             systemPrompt: MealPlanPrompt::System,
             jsonSchema: MealPlanPrompt::schema(),
-            maxBudgetUsd: 0.2,
         ));
 
         $suggestion = $result->structured['meals'][0] ?? null;

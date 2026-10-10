@@ -14,7 +14,7 @@ class ClaudeException extends RuntimeException
     public float $costUsd = 0;
 
     /**
-     * Create an exception for a `result` event that reports an error, such as hitting the budget cap.
+     * Create an exception for a `result` event that reports an error.
      *
      * @param  array<string, mixed>  $event
      */

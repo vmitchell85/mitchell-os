@@ -73,7 +73,6 @@ class BuildShoppingList
                 ],
                 'required' => ['items'],
             ],
-            maxBudgetUsd: 0.5,
         ));
 
         $alreadyOnList = $onList->map(fn ($item): string => Str::lower(trim($item->name)))->flip();
