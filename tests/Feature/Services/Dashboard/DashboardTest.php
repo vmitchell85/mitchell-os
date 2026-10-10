@@ -245,7 +245,7 @@ it('matches the payload fixture the mobile app is tested against', function () {
     $this->travelTo($eastern->setTime(15, 0));
 
     fakeWeather();
-    fakeMacHelper(events: [
+    fakeMacHelper(calendars: [['id' => 'HOME-1', 'title' => 'Family', 'account' => 'Google', 'color' => '#1E90FF']], events: [
         sharedEvent('Picture day', $eastern, allDay: true),
         sharedEvent('Soccer practice', $eastern->setTime(17, 0), 'Alum Creek Park, Lewis Center, OH', end: $eastern->setTime(18, 30)),
         sharedEvent('Dentist', $eastern->addDay()->setTime(9, 0)),
@@ -262,3 +262,26 @@ it('matches the payload fixture the mobile app is tested against', function () {
 
     expect($summary)->toBe(json_decode(file_get_contents($path), true));
 });
+
+it('colors each event by its calendar, falling back to gray, with readable text on top', function (?string $calendarColor, string $color, string $onColor) {
+    fakeWeather();
+    $eastern = CarbonImmutable::now(config('app.display_timezone'))->startOfDay();
+    $captured = fakeMacHelper(
+        calendars: [['id' => 'HOME-1', 'title' => 'Family', 'account' => 'Google', 'color' => $calendarColor]],
+        events: [
+            sharedEvent('Picture day', $eastern, allDay: true),
+            sharedEvent('Dentist', $eastern->setTime(23, 0)),
+        ],
+    );
+
+    $events = app(Dashboard::class)->summary()['schedule'][0]['events'];
+
+    expect($events)->toHaveCount(2)
+        ->and($events[0])->toMatchArray(['title' => 'Picture day', 'calendar' => 'Family', 'color' => $color, 'on_color' => $onColor])
+        ->and($events[1])->toMatchArray(['title' => 'Dentist', 'color' => $color, 'on_color' => $onColor])
+        ->and(array_values(array_filter($captured->runs, fn (array $run): bool => $run[0] === 'calendars')))->toHaveCount(1);
+})->with([
+    'light calendar gets dark text' => ['#ffd60a', '#FFD60A', '#111827'],
+    'dark calendar gets white text' => ['#1E3A8A', '#1E3A8A', '#FFFFFF'],
+    'unknown color falls back' => [null, '#9CA3AF', '#111827'],
+]);

@@ -68,6 +68,8 @@
                 {
                     "title": "Picture day",
                     "calendar": "Family",
+                    "color": "#1E90FF",
+                    "on_color": "#111827",
                     "when": "Fri, Oct 9 (all day)",
                     "all_day": true,
                     "start": "2026-10-09",
@@ -78,6 +80,8 @@
                 {
                     "title": "Soccer practice",
                     "calendar": "Family",
+                    "color": "#1E90FF",
+                    "on_color": "#111827",
                     "when": "Fri, Oct 9, 5:00 PM\u20136:30 PM",
                     "all_day": false,
                     "start": "2026-10-09T21:00:00+00:00",
@@ -100,6 +104,8 @@
                 {
                     "title": "Fall trip",
                     "calendar": "Family",
+                    "color": "#1E90FF",
+                    "on_color": "#111827",
                     "when": "Sat, Oct 10 \u2013 Sun, Oct 11 (all day)",
                     "all_day": true,
                     "start": "2026-10-10",
@@ -110,6 +116,8 @@
                 {
                     "title": "Dentist",
                     "calendar": "Family",
+                    "color": "#1E90FF",
+                    "on_color": "#111827",
                     "when": "Sat, Oct 10, 9:00 AM\u201310:00 AM",
                     "all_day": false,
                     "start": "2026-10-10T13:00:00+00:00",
@@ -126,6 +134,8 @@
                 {
                     "title": "Fall trip",
                     "calendar": "Family",
+                    "color": "#1E90FF",
+                    "on_color": "#111827",
                     "when": "Sat, Oct 10 \u2013 Sun, Oct 11 (all day)",
                     "all_day": true,
                     "start": "2026-10-10",

@@ -97,21 +97,46 @@ class TodayScreen extends NativeComponent
     }
 
     /**
-     * @return list<array{label: string, events: list<array<string, mixed>>}>
+     * Each day split into all-day badges and timed events. Timed events keep their index in the
+     * server's list so openDrive() can find them again.
+     *
+     * @return list<array{label: string, badges: list<array<string, string>>, events: list<array<string, mixed>>}>
      */
     #[Computed]
     public function days(): array
     {
-        return array_map(fn (array $day): array => [
-            'label' => (string) $day['label'],
-            'events' => array_map(fn (array $event): array => [
-                'title' => (string) $event['title'],
-                'calendar' => (string) ($event['calendar'] ?? ''),
-                'when' => $this->eventTime($event),
-                'location' => (string) ($event['location'] ?? ''),
-                'drive' => $this->driveLabel($event['drive'] ?? null),
-            ], $day['events'] ?? []),
-        ], $this->summary['schedule'] ?? []);
+        return array_map(function (array $day): array {
+            $badges = [];
+            $events = [];
+
+            foreach ($day['events'] ?? [] as $index => $event) {
+                $color = $this->hex($event['color'] ?? null, '#9CA3AF');
+                $calendar = (string) ($event['calendar'] ?? '');
+
+                if ($event['all_day'] ?? false) {
+                    $badges[] = [
+                        'title' => (string) $event['title'],
+                        'calendar' => $calendar,
+                        'color' => $color,
+                        'on_color' => $this->hex($event['on_color'] ?? null, '#111827'),
+                    ];
+
+                    continue;
+                }
+
+                $events[] = [
+                    'index' => $index,
+                    'title' => (string) $event['title'],
+                    'calendar' => $calendar,
+                    'color' => $color,
+                    'when' => $this->eventTime($event),
+                    'location' => (string) ($event['location'] ?? ''),
+                    'drive' => $this->driveLabel($event['drive'] ?? null),
+                ];
+            }
+
+            return ['label' => (string) $day['label'], 'badges' => $badges, 'events' => $events];
+        }, $this->summary['schedule'] ?? []);
     }
 
     public function render(): View
@@ -193,6 +218,11 @@ class TodayScreen extends NativeComponent
         }
 
         return $label;
+    }
+
+    protected function hex(mixed $value, string $fallback): string
+    {
+        return is_string($value) && preg_match('/^#[0-9A-Fa-f]{6}$/', $value) === 1 ? $value : $fallback;
     }
 
     protected function clock(?string $timestamp): string

@@ -51,7 +51,9 @@ new #[Title('Dashboard')] class extends Component {
         <flux:heading size="lg">{{ __('Weather') }}</flux:heading>
 
         @if ($this->summary['weather'])
-            @php($weather = $this->summary['weather'])
+            @php
+                $weather = $this->summary['weather'];
+            @endphp
 
             <div class="flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
                 <div class="flex items-center gap-4">
@@ -120,33 +122,55 @@ new #[Title('Dashboard')] class extends Component {
             <div wire:key="day-{{ $day['date'] }}" class="flex flex-col gap-2">
                 <flux:heading>{{ __($day['label']) }}</flux:heading>
 
-                <div class="flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
-                    @forelse ($day['events'] as $event)
-                        <div wire:key="event-{{ $day['date'] }}-{{ $loop->index }}" class="flex flex-col gap-1 p-3">
-                            <div class="flex items-start justify-between gap-3">
-                                <flux:text class="font-medium text-zinc-900 dark:text-white">{{ $event['title'] }}</flux:text>
-                                <flux:text size="sm" class="shrink-0">{{ $event['all_day'] ? __('All day') : $this->clock($event['start']).' – '.$this->clock($event['end']) }}</flux:text>
-                            </div>
+                @php
+                    $allDay = array_values(array_filter($day['events'], fn (array $event): bool => $event['all_day']));
+                    $timed = array_values(array_filter($day['events'], fn (array $event): bool => ! $event['all_day']));
+                @endphp
 
-                            <flux:text size="sm">
-                                {{ $event['calendar'] }}
-                                @if ($event['location'])
-                                    · {{ $event['location'] }}
-                                @endif
-                            </flux:text>
+                @if ($allDay)
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($allDay as $event)
+                            <span wire:key="all-day-{{ $day['date'] }}-{{ $loop->index }}" class="rounded-full px-3 py-1 text-sm font-medium" style="background-color: {{ $event['color'] }}; color: {{ $event['on_color'] }}">
+                                {{ $event['title'] }}<span class="sr-only"> ({{ $event['calendar'] }})</span>
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
 
-                            @if ($event['drive'])
-                                <div>
-                                    <flux:button size="xs" icon="map-pin" :href="$event['drive']['maps_url']" target="_blank">
-                                        {{ __(':minutes min · leave by :time', ['minutes' => $event['drive']['minutes'], 'time' => $this->clock($event['drive']['leave_by'])]) }}
-                                    </flux:button>
+                @if ($timed)
+                    <div class="flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
+                        @foreach ($timed as $event)
+                            <div wire:key="event-{{ $day['date'] }}-{{ $loop->index }}" class="flex gap-3 p-3">
+                                <span class="w-1 shrink-0 rounded-full" style="background-color: {{ $event['color'] }}"></span>
+
+                                <div class="flex min-w-0 flex-1 flex-col gap-1">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <flux:text class="font-medium text-zinc-900 dark:text-white">
+                                            {{ $event['title'] }}<span class="sr-only"> ({{ $event['calendar'] }})</span>
+                                        </flux:text>
+                                        <flux:text size="sm" class="shrink-0">{{ $this->clock($event['start']).' – '.$this->clock($event['end']) }}</flux:text>
+                                    </div>
+
+                                    @if ($event['location'])
+                                        <flux:text size="sm">{{ $event['location'] }}</flux:text>
+                                    @endif
+
+                                    @if ($event['drive'])
+                                        <div>
+                                            <flux:button size="xs" icon="map-pin" :href="$event['drive']['maps_url']" target="_blank">
+                                                {{ __(':minutes min · leave by :time', ['minutes' => $event['drive']['minutes'], 'time' => $this->clock($event['drive']['leave_by'])]) }}
+                                            </flux:button>
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
-                        </div>
-                    @empty
-                        <flux:text class="p-3">{{ __('Nothing scheduled.') }}</flux:text>
-                    @endforelse
-                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if (! $day['events'])
+                    <flux:text class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">{{ __('Nothing scheduled.') }}</flux:text>
+                @endif
             </div>
         @endforeach
     </section>

@@ -119,8 +119,9 @@ function claudeStructuredResult(array $structuredOutput): string
  * @param  list<array<string, mixed>>  $calendars
  * @param  list<array<string, mixed>>  $events
  * @param  array{minutes: int, miles: float, traffic_aware: bool}  $drive
+ * @param  int  $raceFailures  How many runs first fail the way `open -W` does when it loses the kevent race (output is still written unless $raceDropsOutput)
  */
-function fakeMacHelper(array $calendars = [], array $events = [], ?string $error = null, array $drive = ['minutes' => 22, 'miles' => 11.4, 'traffic_aware' => true]): stdClass
+function fakeMacHelper(array $calendars = [], array $events = [], ?string $error = null, array $drive = ['minutes' => 22, 'miles' => 11.4, 'traffic_aware' => true], int $raceFailures = 0, bool $raceDropsOutput = false): stdClass
 {
     $captured = new stdClass;
     $captured->runs = [];
@@ -131,12 +132,17 @@ function fakeMacHelper(array $calendars = [], array $events = [], ?string $error
     config(['mac_helper.app_path' => $app]);
 
     Process::preventStrayProcesses();
-    Process::fake(["'open' '-W' *" => function (PendingProcess $process) use ($captured, $calendars, $events, $error, $drive) {
+    Process::fake(["'open' '-W' *" => function (PendingProcess $process) use ($captured, $calendars, $events, $error, $drive, &$raceFailures, $raceDropsOutput) {
         $command = $process->command;
         $arguments = array_slice($command, array_search('--args', $command, true) + 1);
         $captured->runs[] = $arguments;
 
-        if ($error !== null) {
+        $raced = $raceFailures > 0;
+        $raceFailures = max(0, $raceFailures - 1);
+
+        if ($raced && $raceDropsOutput) {
+            // the helper never answers
+        } elseif ($error !== null) {
             file_put_contents($command[array_search('--stderr', $command, true) + 1], $error);
         } else {
             file_put_contents($command[array_search('--stdout', $command, true) + 1], json_encode(match ($arguments[0]) {
@@ -144,6 +150,10 @@ function fakeMacHelper(array $calendars = [], array $events = [], ?string $error
                 'drive' => $drive,
                 default => $events,
             }));
+        }
+
+        if ($raced) {
+            return Process::describe()->errorOutput('Unable to block on applications (initial call to kevent() failed: No such process)')->exitCode(1);
         }
 
         return Process::describe();

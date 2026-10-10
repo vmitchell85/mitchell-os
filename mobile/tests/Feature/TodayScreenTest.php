@@ -27,12 +27,25 @@ function dashboardSummary(array $overrides = []): array
             ['date' => '2026-10-10', 'label' => 'Today', 'events' => [[
                 'title' => 'Soccer practice',
                 'calendar' => 'Family',
+                'color' => '#1BADF8',
+                'on_color' => '#111827',
                 'when' => '',
                 'all_day' => false,
                 'start' => '2026-10-10T20:30:00+00:00',
                 'end' => '2026-10-10T21:30:00+00:00',
                 'location' => 'Alum Creek Park',
                 'drive' => ['minutes' => 22, 'miles' => 9.4, 'leave_by' => '2026-10-10T20:08:00+00:00', 'traffic_aware' => true, 'maps_url' => 'https://maps.apple.com/?daddr=Alum+Creek+Park'],
+            ], [
+                'title' => 'Picture day',
+                'calendar' => 'School',
+                'color' => '#B3261E',
+                'on_color' => '#FFFFFF',
+                'when' => 'All day',
+                'all_day' => true,
+                'start' => '2026-10-10T04:00:00+00:00',
+                'end' => '2026-10-11T04:00:00+00:00',
+                'location' => null,
+                'drive' => null,
             ]]],
             ['date' => '2026-10-11', 'label' => 'Tomorrow', 'events' => []],
         ],
@@ -62,7 +75,10 @@ it('shows the weather, schedule and drive time in Eastern time', function () {
         ->assertSee('3:00 PM')
         ->assertSee('Today')
         ->assertSee('Soccer practice')
-        ->assertSee('4:30 PM – 5:30 PM · Family')
+        ->assertSee('4:30 PM – 5:30 PM')
+        ->assertSee('Family calendar')
+        ->assertSee('School calendar')
+        ->assertSee('Picture day')
         ->assertSee('Alum Creek Park')
         ->assertSee('22 min · leave by 4:08 PM')
         ->assertSee('Tomorrow')
@@ -128,12 +144,23 @@ it('reads the real server payload', function () {
         ->assertSee('High 72° · Low 51° · 40% chance of rain')
         ->assertSee('Frost Advisory issued for Franklin County')
         ->assertSee('Today')
-        ->assertSee('All day · Family')
+        ->assertDontSee('All day')
         ->assertSee('Picture day')
-        ->assertSee('5:00 PM – 6:30 PM · Family')
+        ->assertSee('5:00 PM – 6:30 PM')
         ->assertSee('Alum Creek Park, Lewis Center, OH')
         ->assertSee('22 min · leave by 4:38 PM')
-        ->assertSee('9:00 AM – 10:00 AM · Family')
+        ->assertSee('9:00 AM – 10:00 AM')
         ->assertSee('Sunday, October 11')
         ->call('openDrive', 0, 1);
+});
+
+it('splits all-day events into colored badges and timed events into rows', function () {
+    Http::fake(['*/dashboard' => Http::response(['data' => dashboardSummary()])]);
+    Browser::shouldReceive('open')->once()->with('https://maps.apple.com/?daddr=Alum+Creek+Park');
+
+    $screen = Native::visit('/today')
+        ->assertSee('Picture day, School calendar, all day')
+        ->call('openDrive', 0, 0);
+
+    expect(json_encode($screen->tree()))->toContain('B3261E', 'FFFFFF', '1BADF8');
 });

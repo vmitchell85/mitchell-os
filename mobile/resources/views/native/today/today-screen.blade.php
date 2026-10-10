@@ -47,25 +47,40 @@
                 <native:column class="w-full gap-2">
                     <native:text class="text-lg font-bold text-theme-on-background">{{ $day['label'] }}</native:text>
 
-                    @forelse ($day['events'] as $eventIndex => $event)
-                        <native:column class="w-full gap-1 p-4 rounded-lg bg-theme-surface">
-                            <native:text class="text-xs text-theme-on-surface-variant">{{ $event['when'] }}@if ($event['calendar'] !== '') · {{ $event['calendar'] }}@endif</native:text>
-                            <native:text class="text-base font-semibold text-theme-on-surface">{{ $event['title'] }}</native:text>
-                            @if ($event['location'] !== '')
-                                <native:text class="text-sm text-theme-on-surface-variant">{{ $event['location'] }}</native:text>
-                            @endif
-                            @if ($event['drive'] !== '')
-                                <native:pressable @press="openDrive({{ $dayIndex }}, {{ $eventIndex }})">
-                                    <native:row class="items-center gap-2 pt-1">
-                                        <native:icon :ios="\App\Icons\Ios::Car" :android="\App\Icons\Android::DirectionsCar" :size="18" class="text-theme-primary" />
-                                        <native:text class="text-sm font-semibold text-theme-primary">{{ $event['drive'] }}</native:text>
-                                    </native:row>
-                                </native:pressable>
-                            @endif
-                        </native:column>
-                    @empty
+                    @if ($day['badges'] !== [])
+                        <native:row class="w-full flex-row flex-wrap gap-2">
+                            @foreach ($day['badges'] as $badge)
+                                <native:row class="px-3 py-1 rounded-full bg-[{{ $badge['color'] }}]" a11y-label="{{ $badge['title'] }}, {{ $badge['calendar'] }} calendar, all day">
+                                    <native:text class="text-sm font-semibold text-[{{ $badge['on_color'] }}]">{{ $badge['title'] }}</native:text>
+                                </native:row>
+                            @endforeach
+                        </native:row>
+                    @endif
+
+                    @foreach ($day['events'] as $event)
+                        <native:row class="w-full gap-3 p-4 rounded-lg bg-theme-surface" a11y-label="{{ $event['calendar'] }} calendar">
+                            <native:column class="w-1 h-full rounded-full bg-[{{ $event['color'] }}]" />
+                            <native:column class="flex-1 gap-1">
+                                <native:text class="text-xs text-theme-on-surface-variant">{{ $event['when'] }}</native:text>
+                                <native:text class="text-base font-semibold text-theme-on-surface">{{ $event['title'] }}</native:text>
+                                @if ($event['location'] !== '')
+                                    <native:text class="text-sm text-theme-on-surface-variant">{{ $event['location'] }}</native:text>
+                                @endif
+                                @if ($event['drive'] !== '')
+                                    <native:pressable @press="openDrive({{ $dayIndex }}, {{ $event['index'] }})">
+                                        <native:row class="items-center gap-2 pt-1">
+                                            <native:icon :ios="\App\Icons\Ios::Car" :android="\App\Icons\Android::DirectionsCar" :size="18" class="text-theme-primary" />
+                                            <native:text class="text-sm font-semibold text-theme-primary">{{ $event['drive'] }}</native:text>
+                                        </native:row>
+                                    </native:pressable>
+                                @endif
+                            </native:column>
+                        </native:row>
+                    @endforeach
+
+                    @if ($day['badges'] === [] && $day['events'] === [])
                         <native:text class="text-theme-on-surface-variant">Nothing scheduled.</native:text>
-                    @endforelse
+                    @endif
                 </native:column>
             @endforeach
 

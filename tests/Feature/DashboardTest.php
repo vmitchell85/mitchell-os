@@ -75,7 +75,7 @@ class DashboardTest extends TestCase
     {
         $this->mockSummary(['schedule' => [
             ['date' => '2026-10-10', 'label' => 'Today', 'events' => [[
-                'title' => 'Soccer practice', 'calendar' => 'Family', 'when' => '5:00 PM – 6:30 PM', 'all_day' => false,
+                'title' => 'Soccer practice', 'calendar' => 'Family', 'color' => '#1E90FF', 'on_color' => '#FFFFFF', 'when' => '5:00 PM – 6:30 PM', 'all_day' => false,
                 'start' => '2026-10-10T21:00:00+00:00', 'end' => '2026-10-10T22:30:00+00:00', 'location' => 'Alum Creek Park',
                 'drive' => ['minutes' => 22, 'miles' => 9.1, 'leave_by' => '2026-10-10T20:38:00+00:00', 'traffic_aware' => true, 'maps_url' => 'https://maps.apple.com/?daddr=Alum+Creek+Park'],
             ]]],
@@ -108,5 +108,31 @@ class DashboardTest extends TestCase
         Livewire::actingAs(User::factory()->create())->test('pages::dashboard')
             ->assertSee('Calendar access is off.')
             ->assertSee('The Mac helper isn\'t installed.');
+    }
+
+    public function test_it_shows_all_day_events_as_colored_badges_and_hides_calendar_names(): void
+    {
+        $this->mockSummary(['schedule' => [
+            ['date' => '2026-10-10', 'label' => 'Today', 'events' => [
+                [
+                    'title' => 'Picture day', 'calendar' => 'School', 'color' => '#FFD60A', 'on_color' => '#111827', 'when' => 'Sat, Oct 10 (all day)', 'all_day' => true,
+                    'start' => '2026-10-10', 'end' => '2026-10-10', 'location' => null, 'drive' => null,
+                ],
+                [
+                    'title' => 'Dentist', 'calendar' => 'Family', 'color' => '#1E90FF', 'on_color' => '#FFFFFF', 'when' => '9:00 AM', 'all_day' => false,
+                    'start' => '2026-10-10T13:00:00+00:00', 'end' => '2026-10-10T14:00:00+00:00', 'location' => null, 'drive' => null,
+                ],
+            ]],
+        ]]);
+
+        Livewire::actingAs(User::factory()->create())->test('pages::dashboard')
+            ->assertSeeHtml('background-color: #FFD60A; color: #111827')
+            ->assertSeeHtml('background-color: #1E90FF')
+            ->assertSee('Picture day')
+            ->assertSee('Dentist')
+            ->assertSeeHtml('<span class="sr-only"> (School)</span>')
+            ->assertSeeHtml('<span class="sr-only"> (Family)</span>')
+            ->assertDontSee('Nothing scheduled.')
+            ->assertDontSee('All day');
     }
 }

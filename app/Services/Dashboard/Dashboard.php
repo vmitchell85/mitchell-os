@@ -16,6 +16,8 @@ class Dashboard
 
     public const int DriveCacheMinutes = 10;
 
+    public const string FallbackColor = '#9CA3AF';
+
     public function __construct(
         protected Weather $weather,
         protected HouseholdCalendar $calendar,
@@ -36,7 +38,7 @@ class Dashboard
      *     }|null,
      *     weather_error: string|null,
      *     schedule: list<array{date: string, label: string, events: list<array{
-     *         title: string, calendar: string, when: string, all_day: bool, start: string, end: string, location: string|null,
+     *         title: string, calendar: string, color: string, on_color: string, when: string, all_day: bool, start: string, end: string, location: string|null,
      *         drive: array{minutes: int, miles: float, leave_by: string, traffic_aware: bool, maps_url: string}|null,
      *     }>}>,
      *     schedule_error: string|null,
@@ -88,7 +90,7 @@ class Dashboard
 
         try {
             if ($this->calendar->isShared()) {
-                $events = $this->calendar->events($today, $today->addDays(self::ScheduleDays)->subSecond());
+                $events = $this->calendar->eventsWithColor($today, $today->addDays(self::ScheduleDays)->subSecond());
             } else {
                 $error = 'No calendars are shared yet. Choose some under Settings → Calendars.';
             }
@@ -117,7 +119,7 @@ class Dashboard
     }
 
     /**
-     * @param  list<array{calendar: string, title: string, when: string, all_day: bool, start: string, end: string, location: string|null}>  $events
+     * @param  list<array{calendar: string, title: string, when: string, all_day: bool, start: string, end: string, location: string|null, color: string|null}>  $events
      * @return list<array<string, mixed>>
      */
     protected function eventsOn(array $events, CarbonImmutable $dayStart, CarbonImmutable $dayEnd, string $timezone): array
@@ -209,10 +211,13 @@ class Dashboard
     protected function present(array $event): array
     {
         $drive = $event['drive'];
+        $color = $this->hexColor($event['color'] ?? null);
 
         return [
             'title' => $event['title'],
             'calendar' => $event['calendar'],
+            'color' => $color,
+            'on_color' => $this->onColor($color),
             'when' => $event['when'],
             'all_day' => $event['all_day'],
             'start' => $event['all_day'] ? $event['start'] : $event['starts_at']->utc()->toIso8601String(),
@@ -226,5 +231,26 @@ class Dashboard
                 'maps_url' => $drive['maps_url'],
             ],
         ];
+    }
+
+    protected function hexColor(?string $color): string
+    {
+        return $color !== null && preg_match('/^#[0-9A-Fa-f]{6}$/', $color) ? strtoupper($color) : self::FallbackColor;
+    }
+
+    /**
+     * White or near-black, whichever has the better WCAG contrast against the color.
+     */
+    protected function onColor(string $color): string
+    {
+        [$red, $green, $blue] = array_map(function (string $channel): float {
+            $value = hexdec($channel) / 255;
+
+            return $value <= 0.03928 ? $value / 12.92 : (($value + 0.055) / 1.055) ** 2.4;
+        }, str_split(substr($color, 1), 2));
+
+        $luminance = 0.2126 * $red + 0.7152 * $green + 0.0722 * $blue;
+
+        return $luminance > 0.179 ? '#111827' : '#FFFFFF';
     }
 }
