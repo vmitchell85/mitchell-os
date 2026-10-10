@@ -1,0 +1,1 @@
+@foreach ($runs as $run)<native:text class="{{ trim(($run['bold'] ? 'font-bold ' : '').($run['italic'] ? 'italic ' : '').($run['code'] ? 'font-mono ' : '').($run['link'] ? 'underline text-theme-primary' : '')) }}">{{ $run['text'] }}</native:text>@endforeach
